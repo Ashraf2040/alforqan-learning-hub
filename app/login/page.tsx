@@ -1,6 +1,6 @@
 'use client';
 import { FormEvent, useState } from 'react';
-import { signIn } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -14,7 +14,9 @@ export default function LoginPage() {
     const data = new FormData(event.currentTarget);
     const result = await signIn('credentials', { username: data.get('username'), password: data.get('password'), redirect: false });
     if (result?.error) { setError(t('invalid')); setBusy(false); return; }
-    router.replace('/'); router.refresh();
+    const session = await getSession();
+    const workspace = session?.user?.role === 'ADMIN' ? '/admin' : '/teacher';
+    router.replace(workspace); router.refresh();
   }
   return <main className="grid min-h-screen place-items-center bg-[radial-gradient(ellipse_at_top_right,_#dcefeb,_transparent_45%),linear-gradient(135deg,#f8fafc,#edf2f8)] px-5 py-12">
     <section className="w-full max-w-md rounded-3xl border border-white bg-white/95 p-8 shadow-[0_25px_70px_-35px_rgba(16,40,65,.35)] sm:p-10">
