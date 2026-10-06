@@ -1,0 +1,344 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/client-weekly-v5"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String  @id @default(uuid())
+  username     String  @unique
+  name         String
+  password     String
+  role         String
+  email        String? @unique
+  arabicName   String?
+  academicYear String?
+  school       String?
+  signature    String?
+
+  classes                   Class[]          @relation("TeacherClasses")
+  subjects                  Subject[]        @relation("TeacherSubjects")
+  classTeacherAssignments   ClassTeacher[]
+  subjectTeacherAssignments SubjectTeacher[]
+  lessons                   Lesson[]
+
+  weeklyPlannerSubmissions WeeklyPlannerSubmission[]
+  studentReports           StudentReport[]
+  schedulesCreated         Schedule[]       @relation("ScheduleCreator")
+  scheduleItems            ScheduleItem[]
+}
+
+model Class {
+  id       String   @id @default(uuid())
+  name     String
+  gradeId  String?
+  grade    Grade?   @relation(fields: [gradeId], references: [id], onDelete: SetNull)
+  teachers User[]   @relation("TeacherClasses")
+  lessons  Lesson[]
+
+  weeklyPlannerSubmissions WeeklyPlannerSubmission[]
+  students                 Student[]
+  classTeacherAssignments  ClassTeacher[]
+  classSubjects            ClassSubject[]
+  schedules                Schedule[]
+}
+
+model Subject {
+  id              String           @id @default(uuid())
+  name            String
+  reportOrder     Int              @default(0)
+  teachers        User[]           @relation("TeacherSubjects")
+  lessons         Lesson[]
+  weeklyPlanItems WeeklyPlanItem[]
+  grades          GradeSubject[]
+
+  weeklyPlannerItems        WeeklyPlannerItem[]
+  adminWeeklyPlanItems      AdminWeeklyPlanItem[]
+  studentReports            StudentReport[]
+  classSubjectAssignments   ClassSubject[]
+  teacherSubjectAssignments SubjectTeacher[]
+  marks                     Mark[]
+  scheduleItems             ScheduleItem[]
+}
+
+model ClassTeacher {
+  id        String @id @default(uuid())
+  classId   String
+  teacherId String
+  class     Class  @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher   User   @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  marks     Mark[]
+
+  @@unique([classId, teacherId])
+}
+
+model ClassSubject {
+  id        String  @id @default(uuid())
+  classId   String
+  subjectId String
+  class     Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, subjectId])
+}
+
+model SubjectTeacher {
+  id        String  @id @default(uuid())
+  subjectId String
+  teacherId String
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher   User    @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, teacherId])
+}
+
+model Mark {
+  id             String       @id @default(uuid())
+  participation  Int?
+  behavior       Int?
+  workingQuiz    Int?
+  project        Int?
+  finalExam      Int?
+  totalMarks     Int?
+  studentId      String
+  classTeacherId String
+  subjectId      String
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  classTeacher   ClassTeacher @relation(fields: [classTeacherId], references: [id], onDelete: Cascade)
+  subject        Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, subjectId, classTeacherId])
+}
+
+model Student {
+  id           String          @id @default(uuid())
+  name         String
+  classId      String
+  createdAt    DateTime        @default(now())
+  class        Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
+  reports      StudentReport[]
+  marks        Mark[]
+
+  @@index([classId, name])
+}
+
+model StudentReport {
+  id              String   @id @default(uuid())
+  studentId       String
+  teacherId       String
+  subjectId       String
+  academicYear    String
+  semester        String
+  reportType      String   @default("First Report")
+  status          String   @default("Not Started")
+  recommendations String[] @default([])
+  comment         String   @default("")
+  ixlPracticeStatus String?
+  participation   Int?
+  behavior        Int?
+  quizScore       Int?
+  projectScore    Int?
+  finalExam       Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher         User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@unique([studentId, teacherId, subjectId, academicYear, semester, reportType])
+  @@index([teacherId, academicYear, semester])
+}
+
+model Lesson {
+  id        String   @id @default(uuid())
+  classId   String
+  subjectId String
+  teacherId String
+  date      DateTime
+  unit      String
+  pages     String
+  lesson    String
+  objective String
+  homework  String?
+  createdAt DateTime @default(now())
+  comments  String?
+  class     Class    @relation(fields: [classId], references: [id])
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  teacher   User     @relation(fields: [teacherId], references: [id])
+
+  @@index([teacherId, date])
+  @@index([classId, date])
+}
+
+// Daily progress uses the active class timetable to determine expected teacher submissions.
+model Schedule {
+  id        String         @id @default(uuid())
+  classId   String
+  name      String?
+  isActive  Boolean        @default(true)
+  createdBy String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  class     Class          @relation(fields: [classId], references: [id], onDelete: Cascade)
+  creator   User           @relation("ScheduleCreator", fields: [createdBy], references: [id])
+  items     ScheduleItem[]
+
+  @@index([classId, isActive])
+}
+
+model ScheduleItem {
+  id         String   @id @default(uuid())
+  scheduleId String
+  dayIndex   Int
+  session    Int      @default(0)
+  start      String   @default("")
+  end        String   @default("")
+  subjectId  String
+  teacherId  String?
+  schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  teacher    User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@index([scheduleId])
+  @@index([teacherId])
+  @@index([subjectId])
+  @@index([dayIndex, session])
+}
+
+model Grade {
+  id               String             @id @default(uuid())
+  name             String             @unique
+  classes          Class[]
+  subjects         GradeSubject[]
+  plans            WeeklyPlan[]
+  adminNotes       AdminPlannerNote[] @relation("AdminPlannerNoteGrades")
+  adminWeeklyPlans AdminWeeklyPlan[]
+}
+
+model GradeSubject {
+  gradeId   String
+  subjectId String
+  position  Int     @default(0)
+  grade     Grade   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([gradeId, subjectId])
+}
+
+model WeeklyPlan {
+  id        String           @id @default(uuid())
+  gradeId   String?
+  week      String
+  fromDate  DateTime
+  toDate    DateTime
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  note      String?
+  dictation String?
+  grade     Grade?           @relation(fields: [gradeId], references: [id])
+  items     WeeklyPlanItem[]
+}
+
+model WeeklyPlanItem {
+  id           String  @id @default(uuid())
+  weeklyPlanId String
+  subjectId    String
+  unit         String
+  lessons      String
+  pages        String
+  homework     String?
+  classwork    String?
+  dictation    String?
+
+  weeklyPlan WeeklyPlan @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
+  subject    Subject    @relation(fields: [subjectId], references: [id])
+}
+
+enum Role {
+  TEACHER
+  ADMIN
+  COORDINATOR
+}
+
+// New weekly-planner data lives separately while reusing the current users,
+// teacher assignments, classes and subjects.
+model WeeklyPlannerSubmission {
+  id        String              @id @default(uuid())
+  teacherId String
+  week      String
+  semester  String?
+  fromDate  DateTime
+  toDate    DateTime
+  dictation String?
+  notes     String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  teacher   User                @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classes   Class[]
+  items     WeeklyPlannerItem[]
+
+  @@index([week, fromDate, toDate])
+  @@index([teacherId])
+}
+
+model WeeklyPlannerItem {
+  id           String                  @id @default(uuid())
+  submissionId String
+  subjectId    String
+  classwork    String                  @default("")
+  homework     String                  @default("")
+  submission   WeeklyPlannerSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  subject      Subject                 @relation(fields: [subjectId], references: [id])
+
+  @@index([submissionId])
+}
+
+model AdminPlannerNote {
+  id        String   @id @default(uuid())
+  content   String
+  scope     String
+  week      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  grades    Grade[]  @relation("AdminPlannerNoteGrades")
+
+  @@index([scope, week, updatedAt])
+}
+
+model AdminWeeklyPlan {
+  id             String                @id @default(uuid())
+  gradeId        String
+  week           String
+  semester       String?
+  fromDate       DateTime
+  toDate         DateTime
+  dictation      String?
+  dictationStyle String?
+  notes          String?
+  notesStyle     String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  grade          Grade                 @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  items          AdminWeeklyPlanItem[]
+
+  @@unique([gradeId, week])
+  @@index([week, fromDate, toDate])
+}
+
+model AdminWeeklyPlanItem {
+  id                String          @id @default(uuid())
+  adminWeeklyPlanId String
+  subjectId         String
+  classwork         String          @default("")
+  classworkStyle    String?
+  homework          String          @default("")
+  homeworkStyle     String?
+  plan              AdminWeeklyPlan @relation(fields: [adminWeeklyPlanId], references: [id], onDelete: Cascade)
+  subject           Subject         @relation(fields: [subjectId], references: [id])
+
+  @@unique([adminWeeklyPlanId, subjectId])
+}

@@ -1,0 +1,552 @@
+@import "tailwindcss";
+:root { color-scheme: light; --brand-950: #123b36; --brand-800: #17635a; --ink: #172b2a; --muted: #647774; --line: #e0e8e5; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { min-height: 100vh; background: radial-gradient(ellipse at 12% 0%, rgb(220 238 231 / 48%), transparent 34%), radial-gradient(ellipse at 92% 16%, rgb(227 235 242 / 52%), transparent 31%), #f6f8f7; color: var(--ink); font-family: Inter, "Segoe UI", Arial, sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+button:not(:disabled):hover { transform: translateY(-1px); }
+button:not(:disabled):active { transform: translateY(0); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid rgb(23 99 90 / 28%); outline-offset: 2px; }
+input:not([type="checkbox"]):not([type="radio"]), select, textarea { border-color: var(--line); border-radius: 0.75rem; color: var(--ink); transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease; }
+input:not([type="checkbox"]):not([type="radio"]):focus, select:focus, textarea:focus { border-color: #37877c; box-shadow: 0 0 0 3px rgb(55 135 124 / 12%); outline: none; }
+input::placeholder, textarea::placeholder { color: #94a3a0; }
+main > section:not(#weekly-plan-print), main > form { box-shadow: 0 16px 42px -34px rgb(15 45 40 / 32%); }
+::selection { background: #d6ebe5; color: #123b36; }
+[dir="rtl"] body { direction: rtl; }
+[dir="rtl"] input, [dir="rtl"] textarea, [dir="rtl"] select { text-align: right; }
+.planner-date-band { border-color: #d6e0dc; background: linear-gradient(110deg, #f1f6f4, #f8faf9); box-shadow: inset 0 1px rgb(255 255 255 / 90%); }
+.planner-table-shell { box-shadow: 0 16px 38px -30px rgb(15 45 40 / 40%); }
+.planner-table-heading { background: linear-gradient(105deg, #123b36, #245e55); }
+.planner-table-shell tbody tr:hover th, .planner-table-shell tbody tr:hover td { background-color: #f8faf9; }
+/* Keep planner column order stable while each cell follows its own text direction. */
+#weekly-plan-print table { direction: ltr; font-size: 16px; }
+#weekly-plan-print .planner-table-heading th { background: #123b36; color: #fff; font-size: 15px; letter-spacing: .015em; }
+#weekly-plan-print tbody td { font-size: 20px; line-height: 1.7; }
+#weekly-plan-print tbody th { font-size: 17px; }
+#weekly-plan-print .planner-date-band { font-size: 17px; font-weight: 800; }
+#weekly-plan-print .planner-date-value strong { font-size: 1.12em; font-weight: 900; }
+#weekly-plan-print .planner-table-shell { border: 3px solid #123b36; }
+#weekly-plan-print .planner-value { unicode-bidi: plaintext; }
+#weekly-plan-print .planner-value-display { display: block; }
+.report-arabic, .report-subject-card[dir="rtl"] { font-family: "Noto Naskh Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif; line-height: 1.85; }
+.report-arabic input[dir="ltr"], .report-subject-card[dir="rtl"] input[dir="ltr"] { text-align: left; }
+.report-subject-card { border-color: #dbe5e2; background: linear-gradient(145deg, #fff, #f7faf9); box-shadow: 0 10px 26px -22px rgb(15 45 40 / 34%); }
+.report-subject-card[dir="rtl"] ul { padding-inline-start: 1.25rem; padding-inline-end: 0; }
+.planner-value-selected { outline: 2px solid #0891b2; outline-offset: -2px; background-color: rgb(236 254 255 / 55%); }
+.planner-editable-value { min-height: 1.5em; field-sizing: content; font: inherit; }
+.planner-value-display { border: 0; background: transparent; font: inherit; color: inherit; white-space: pre-wrap; }
+.admin-assignment-scroll { scrollbar-width: auto; scrollbar-color: #123b36 #e2e8f0; }
+.admin-assignment-scroll::-webkit-scrollbar { height: 13px; }
+.admin-assignment-scroll::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 999px; }
+.admin-assignment-scroll::-webkit-scrollbar-thumb { background: #123b36; border: 3px solid #e2e8f0; border-radius: 999px; }
+
+/* Workspace pages use the full available canvas; navigation stays visually distinct. */
+header.no-print { box-shadow: 0 8px 28px -24px rgb(15 45 40 / 48%); }
+main.mx-auto { width: 100%; max-width: none; }
+main > #student-reports-print { width: 100%; max-width: none; }
+.student-report-sheet { background: linear-gradient(180deg, #f6f9fb 0, #fff 19rem); }
+.student-report-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.report-subject-card { box-shadow: 0 12px 32px -28px rgb(25 52 77 / 50%); }
+.student-report-duplex-spacer { display: none; }
+@media print {
+  @page student-report { size: A4 portrait; margin: 10mm; }
+  #student-reports-print { background: #fff !important; }
+  #student-reports-print .student-report-sheet { min-height: 0 !important; background: #fff !important; border-color: #d4e1e8 !important; padding: 4mm !important; }
+  #student-reports-print .student-report-header { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #student-reports-print .report-subject-card { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #student-reports-print .student-report-subject-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; align-content: start !important; }
+  #student-reports-print .student-report-duplex-spacer { display: block !important; height: 1mm !important; break-after: page !important; page-break-after: always !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print .student-report-duplex-spacer { display: none !important; }
+  @page weekly-plan { size: A4 landscape; margin: 8mm; }
+  @page student-report { size: A4 portrait; margin: 10mm; }
+  html, body { width: auto !important; min-height: 0 !important; margin: 0 !important; background: #fff !important; }
+  body * { visibility: hidden !important; }
+  #weekly-plan-print, #weekly-plan-print * { visibility: visible !important; }
+  #student-reports-print, #student-reports-print * { visibility: visible !important; }
+  #weekly-plan-print { page: weekly-plan !important; font-family: "Aptos", "Segoe UI", Arial, sans-serif !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; margin: 0 !important; overflow: visible !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #student-reports-print { page: student-report; font-family: "Aptos", "Segoe UI", Arial, sans-serif !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; overflow: visible !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #weekly-plan-print .no-print { display: none !important; }
+  #student-reports-print .student-report-sheet { page: student-report; break-after: page; page-break-after: always; box-shadow: none !important; }
+  #student-reports-print .student-report-sheet:last-child { break-after: auto; page-break-after: auto; }
+  #student-reports-print section { break-inside: avoid; page-break-inside: avoid; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print .student-report-sheet:not([data-single-print="true"]) { display: none !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print [data-single-print="true"] { break-after: page !important; page-break-after: always !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print [data-single-print="true"][data-last-student-page="true"] { break-after: auto !important; page-break-after: auto !important; }
+  #student-reports-print .report-arabic, #student-reports-print .report-subject-card[dir="rtl"] { font-family: "Noto Naskh Arabic", "Noto Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif !important; font-size: 11pt !important; line-height: 1.8 !important; }
+  #weekly-plan-print .planner-print-header { padding: 2mm 2mm 3mm !important; }
+  #weekly-plan-print .planner-school-header { grid-template-columns: 18mm 1fr 18mm !important; gap: 4mm !important; }
+  #weekly-plan-print .planner-school-header img { width: 17mm !important; height: 17mm !important; }
+  #weekly-plan-print .planner-date-band { font-size: 12pt !important; font-weight: 800 !important; }
+  #weekly-plan-print .planner-date-value strong { font-size: 13pt !important; font-weight: 900 !important; }
+  #weekly-plan-print .planner-table-shell { border: 2.5px solid #123b36 !important; border-radius: 0 !important; }
+  #weekly-plan-print table { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; border-collapse: collapse !important; font-size: 11pt !important; }
+  #weekly-plan-print th, #weekly-plan-print td { border: 1px solid #111 !important; padding: 2mm 2.5mm !important; vertical-align: middle !important; }
+  #weekly-plan-print .planner-table-heading { background: #123b36 !important; color: #fff !important; font-size: 11pt !important; }
+  #weekly-plan-print tbody th, #weekly-plan-print tbody td, #weekly-plan-print tfoot th, #weekly-plan-print tfoot td, #weekly-plan-print .planner-date-band { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #weekly-plan-print .planner-value-display { display: block !important; width: 100% !important; padding: 0 !important; border: 0 !important; background: transparent !important; text-align: inherit !important; cursor: default !important; }
+  #weekly-plan-print .planner-editable-value { display: block !important; width: 100% !important; min-height: 0 !important; height: auto !important; resize: none !important; overflow: visible !important; padding: 0 !important; border: 0 !important; background: transparent !important; outline: none !important; field-sizing: content !important; font-family: inherit !important; font-size: inherit; font-weight: inherit; line-height: inherit; color: inherit; }
+  #weekly-plan-print .planner-value-selected { outline: none !important; background: transparent !important; }
+  #weekly-plan-print tbody td, #weekly-plan-print tfoot td { font-size: 12pt !important; font-weight: 600 !important; line-height: 1.6 !important; }
+  #weekly-plan-print .planner-print-header, #weekly-plan-print .planner-table-heading, #weekly-plan-print tbody th, #weekly-plan-print tfoot th { font-family: "Aptos", "Segoe UI", Arial, sans-serif !important; font-weight: 800 !important; letter-spacing: .01em; }
+  #weekly-plan-print tbody th { font-size: 11.5pt !important; }
+  #weekly-plan-print tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* Final report print layout: use the portrait page height and distribute subject cards evenly. */
+@media print {
+  #student-reports-print .student-report-sheet {
+    min-height: 276mm !important;
+    height: 276mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 5mm !important;
+  }
+  #student-reports-print .student-report-header { flex: 0 0 auto !important; }
+  #student-reports-print .student-report-subject-grid {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+    align-content: stretch !important;
+    gap: 6mm !important;
+  }
+  #student-reports-print .report-subject-card {
+    min-height: 0 !important;
+    height: 100% !important;
+    padding: 5mm !important;
+    font-size: 10pt !important;
+    line-height: 1.45 !important;
+  }
+  #student-reports-print .report-subject-card h4 { font-size: 13pt !important; }
+  #student-reports-print .report-subject-card .text-xl { font-size: 15pt !important; }
+  #student-reports-print .report-subject-card .text-sm { font-size: 10pt !important; }
+  #student-reports-print .report-subject-card .text-xs { font-size: 9pt !important; }
+  #student-reports-print .report-subject-card ul { font-size: 10pt !important; line-height: 1.5 !important; }
+  #student-reports-print .student-report-sheet > .mt-5 { flex: 0 0 auto !important; margin-top: 4mm !important; }
+  #student-reports-print .student-report-sheet:has(.student-report-subject-grid > :nth-child(2):last-child) .student-report-subject-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  #student-reports-print .student-report-sheet:has(.student-report-subject-grid > :nth-child(3):last-child) .student-report-subject-grid > :nth-child(3):last-child {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* Final report print layout: use the portrait page height and distribute subject cards evenly. */
+@media print {
+  #student-reports-print .student-report-sheet {
+    min-height: 276mm !important;
+    height: 276mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 5mm !important;
+  }
+  #student-reports-print .student-report-header { flex: 0 0 auto !important; }
+  #student-reports-print .student-report-subject-grid {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+    align-content: stretch !important;
+    gap: 6mm !important;
+  }
+  #student-reports-print .report-subject-card {
+    min-height: 0 !important;
+    height: 100% !important;
+    padding: 5mm !important;
+    font-size: 10pt !important;
+    line-height: 1.45 !important;
+  }
+  #student-reports-print .report-subject-card h4 { font-size: 13pt !important; }
+  #student-reports-print .report-subject-card .text-xl { font-size: 15pt !important; }
+  #student-reports-print .report-subject-card .text-sm { font-size: 10pt !important; }
+  #student-reports-print .report-subject-card .text-xs { font-size: 9pt !important; }
+  #student-reports-print .report-subject-card ul { font-size: 10pt !important; line-height: 1.5 !important; }
+  #student-reports-print .student-report-sheet > .mt-5 { flex: 0 0 auto !important; margin-top: 4mm !important; }
+  #student-reports-print .student-report-sheet:has(.student-report-subject-grid > :nth-child(2):last-child) .student-report-subject-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  #student-reports-print .student-report-sheet:has(.student-report-subject-grid > :nth-child(3):last-child) .student-report-subject-grid > :nth-child(3):last-child {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* Final orientation and readability rules: report pages stay portrait; planner pages stay landscape. */
+@page { size: A4 portrait; margin: 10mm; }
+@page student-report { size: A4 portrait; margin: 10mm; }
+@page weekly-plan { size: A4 landscape; margin: 8mm; }
+@media print {
+  #student-reports-print { page: student-report !important; }
+  #student-reports-print .student-report-sheet { page: student-report !important; }
+  #student-reports-print .student-report-subject-grid { gap: 4mm !important; }
+  #student-reports-print .report-subject-card { padding: 4mm !important; font-size: 9pt !important; line-height: 1.4 !important; }
+  #student-reports-print .report-subject-card h4 { font-size: 12pt !important; }
+  #student-reports-print .report-subject-card .text-xl { font-size: 14pt !important; }
+  #student-reports-print .report-subject-card .text-sm { font-size: 9pt !important; }
+  #student-reports-print .report-subject-card .text-xs { font-size: 8pt !important; }
+  #student-reports-print .report-subject-card ul { font-size: 9pt !important; line-height: 1.4 !important; }
+  #weekly-plan-print { page: weekly-plan !important; }
+}
+
+/* Final print overrides: keep reports upright on portrait sheets while plans stay landscape. */
+@page { size: A4 portrait; margin: 10mm; }
+@page student-report { size: A4 portrait; margin: 10mm; }
+@page weekly-plan { size: A4 landscape; margin: 8mm; }
+@media print {
+  #weekly-plan-print { page: weekly-plan !important; }
+  #student-reports-print { page: student-report !important; }
+  #student-reports-print .student-report-sheet { page: student-report !important; min-height: 0 !important; padding: 4mm !important; break-inside: avoid-page !important; page-break-inside: avoid !important; break-after: page !important; page-break-after: always !important; }
+  #student-reports-print .student-report-sheet:last-child { break-after: auto !important; page-break-after: auto !important; }
+  #student-reports-print .student-report-subject-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 4mm !important; align-content: start !important; }
+  #student-reports-print .report-subject-card { padding: 3.5mm !important; border-radius: 3mm !important; font-size: 9.5pt !important; line-height: 1.38 !important; }
+  #student-reports-print .report-subject-card h4 { font-size: 12pt !important; line-height: 1.25 !important; }
+  #student-reports-print .report-subject-card .mt-3 { margin-top: 2mm !important; }
+  #student-reports-print .report-subject-card .mt-2 { margin-top: 1.5mm !important; }
+  #student-reports-print .report-subject-card .mt-1 { margin-top: .75mm !important; }
+  #student-reports-print .report-subject-card .gap-2 { gap: 1.5mm !important; }
+  #student-reports-print .report-subject-card .px-3 { padding-inline: 2mm !important; }
+  #student-reports-print .report-subject-card .py-2 { padding-block: 1.5mm !important; }
+  #student-reports-print .report-subject-card .text-xl { font-size: 14pt !important; }
+  #student-reports-print .report-subject-card .text-sm { font-size: 9.5pt !important; }
+  #student-reports-print .report-subject-card .text-xs { font-size: 8.5pt !important; }
+  #student-reports-print .report-subject-card[dir="rtl"] { font-size: 9.5pt !important; line-height: 1.4 !important; }
+  #student-reports-print .report-subject-card ul { font-size: 9.5pt !important; line-height: 1.4 !important; }
+  #student-reports-print .report-subject-card .border-t { padding-top: 1.5mm !important; }
+  #student-reports-print .report-subject-header { margin-bottom: 2mm !important; }
+  #student-reports-print .student-report-header { margin-bottom: 3mm !important; }
+  #student-reports-print .student-report-sheet > .mt-5 { margin-top: 3mm !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print .student-report-sheet:not([data-single-print="true"]) { display: none !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print .student-report-duplex-spacer { display: none !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print [data-single-print="true"] { break-after: page !important; page-break-after: always !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print [data-single-print="true"][data-last-student-page="true"] { break-after: auto !important; page-break-after: auto !important; }
+}
+
+@page { size: A4 portrait; margin: 10mm; }
+@page student-report { size: A4 portrait; margin: 10mm; }
+@page weekly-plan { size: A4 landscape; margin: 8mm; }
+@media print {
+  #weekly-plan-print { page: weekly-plan !important; }
+  #student-reports-print { page: student-report !important; }
+  #student-reports-print .student-report-sheet { page: student-report !important; break-inside: avoid-page !important; page-break-inside: avoid !important; break-after: page !important; page-break-after: always !important; }
+  #student-reports-print .student-report-sheet:last-child { break-after: auto !important; page-break-after: auto !important; }
+  #student-reports-print .student-report-subject-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 2.5mm !important; }
+  #student-reports-print .report-subject-card { padding: 2.5mm !important; border-radius: 3mm !important; font-size: 8pt !important; line-height: 1.3 !important; }
+  #student-reports-print .report-subject-card h4 { font-size: 10pt !important; line-height: 1.25 !important; }
+  #student-reports-print .report-subject-card .mt-3 { margin-top: 1.5mm !important; }
+  #student-reports-print .report-subject-card .mt-2 { margin-top: 1mm !important; }
+  #student-reports-print .report-subject-card .mt-1 { margin-top: .5mm !important; }
+  #student-reports-print .report-subject-card .gap-2 { gap: 1mm !important; }
+  #student-reports-print .report-subject-card .px-3 { padding-inline: 1.5mm !important; }
+  #student-reports-print .report-subject-card .py-2 { padding-block: 1mm !important; }
+  #student-reports-print .report-subject-card .text-xl { font-size: 12pt !important; }
+  #student-reports-print .report-subject-card .text-sm { font-size: 8pt !important; }
+  #student-reports-print .report-subject-card .text-xs { font-size: 7pt !important; }
+  #student-reports-print .report-subject-card[dir="rtl"] { font-size: 8pt !important; line-height: 1.3 !important; }
+  #student-reports-print .report-subject-card ul { font-size: 8pt !important; line-height: 1.25 !important; }
+  #student-reports-print .report-subject-card .border-t { padding-top: 1mm !important; }
+  #student-reports-print .report-subject-card [aria-hidden="true"] { height: 4mm !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print [data-single-print="true"] { break-after: page !important; page-break-after: always !important; }
+  body:has(#student-reports-print [data-single-print="true"]) #student-reports-print [data-single-print="true"][data-last-student-page="true"] { break-after: auto !important; page-break-after: auto !important; }
+}
+@import "tailwindcss";
+
+/*
+ * Design tokens.
+ * The `emerald` scale is remapped to the school's teal so every page that already
+ * uses emerald-* classes (admin, teacher, login) picks up the refined brand colour
+ * without any markup changes.
+ */
+@theme {
+  --font-sans: var(--font-inter), var(--font-arabic), "Segoe UI", system-ui, Arial, sans-serif;
+  --color-emerald-50: #effaf7;
+  --color-emerald-100: #d6f2ea;
+  --color-emerald-200: #aee4d6;
+  --color-emerald-300: #7bcdbb;
+  --color-emerald-400: #46b09d;
+  --color-emerald-500: #26917f;
+  --color-emerald-600: #1b7467;
+  --color-emerald-700: #17635a;
+  --color-emerald-800: #134f49;
+  --color-emerald-900: #123b36;
+  --color-emerald-950: #0a2421;
+}
+
+:root {
+  color-scheme: light;
+  --brand-950: #0a2421;
+  --brand-900: #123b36;
+  --brand-800: #17635a;
+  --brand-700: #1b7467;
+  --accent: #c9972f;
+  --ink: #14282a;
+  --muted: #5d716f;
+  --line: #dde7e3;
+  --line-strong: #c7d5d0;
+  --surface: #ffffff;
+  --surface-soft: #f3f7f5;
+  --ring: rgb(23 99 90 / 30%);
+  --shadow-sm: 0 1px 2px rgb(15 45 40 / 6%), 0 1px 3px rgb(15 45 40 / 5%);
+  --shadow-md: 0 4px 12px -2px rgb(15 45 40 / 8%), 0 12px 28px -12px rgb(15 45 40 / 16%);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 60% 40% at 8% -5%, rgb(205 232 223 / 55%), transparent 70%),
+    radial-gradient(ellipse 50% 35% at 100% 8%, rgb(224 234 243 / 55%), transparent 70%),
+    #f5f8f7;
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-inter), var(--font-arabic), Inter, "Segoe UI", Arial, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+[dir="rtl"] body { direction: rtl; font-family: var(--font-arabic), var(--font-inter), "Segoe UI", Tahoma, Arial, sans-serif; font-feature-settings: normal; }
+
+h1, h2, h3 { letter-spacing: -0.015em; }
+[dir="rtl"] h1, [dir="rtl"] h2, [dir="rtl"] h3 { letter-spacing: 0; }
+
+button, a { -webkit-tap-highlight-color: transparent; }
+button { transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease, opacity 150ms ease; }
+button:not(:disabled) { cursor: pointer; }
+button:not(:disabled):active { transform: scale(0.985); }
+button:disabled { cursor: not-allowed; }
+
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Form controls */
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]), select, textarea {
+  border-color: var(--line-strong);
+  border-radius: 0.75rem;
+  color: var(--ink);
+  background-color: #fff;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: #a9bdb7; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):focus, select:focus, textarea:focus {
+  border-color: #2f8478;
+  box-shadow: 0 0 0 4px rgb(47 132 120 / 14%);
+  outline: none;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: var(--brand-800); }
+input::placeholder, textarea::placeholder { color: #98a9a6; }
+select { cursor: pointer; }
+::selection { background: #cfe9e1; color: var(--brand-900); }
+
+/* Page-level cards that sit directly in <main> */
+main > section:not(#weekly-plan-print), main > form { box-shadow: var(--shadow-md); }
+
+/* Reusable building blocks (utilities can still override these) */
+@layer components {
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 1rem;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-primary, .btn-secondary, .btn-danger {
+    display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+    border-radius: 0.75rem; padding: 0.625rem 1.125rem;
+    font-size: 0.875rem; font-weight: 600; line-height: 1.25rem; white-space: nowrap;
+  }
+  .btn-primary {
+    color: #fff; border: 1px solid var(--brand-950);
+    background: linear-gradient(180deg, #1b6b61 0%, #134f49 100%);
+    box-shadow: 0 1px 2px rgb(10 36 33 / 25%), inset 0 1px 0 rgb(255 255 255 / 14%);
+  }
+  .btn-primary:not(:disabled):hover { background: linear-gradient(180deg, #17635a 0%, #0f423d 100%); box-shadow: 0 6px 16px -6px rgb(10 36 33 / 55%), inset 0 1px 0 rgb(255 255 255 / 14%); }
+  .btn-primary:disabled { opacity: 0.45; }
+  .btn-secondary { color: #274240; background: #fff; border: 1px solid var(--line-strong); box-shadow: var(--shadow-sm); }
+  .btn-secondary:not(:disabled):hover { background: var(--surface-soft); border-color: #a9bdb7; }
+  .btn-secondary:disabled { opacity: 0.5; }
+  .btn-danger { color: #be123c; background: #fff; border: 1px solid #fecdd3; }
+  .btn-danger:not(:disabled):hover { background: #fff1f2; border-color: #fda4af; }
+  .choice {
+    display: flex; cursor: pointer; align-items: center; gap: 0.625rem;
+    border: 1px solid var(--line-strong); border-radius: 0.75rem; background: #fff;
+    padding: 0.625rem 0.875rem; font-size: 0.875rem; font-weight: 500; color: #274240;
+    transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  }
+  .choice:hover { border-color: #8fb0a8; background: var(--surface-soft); }
+  .choice:has(input:checked) { border-color: var(--brand-800); background: #effaf7; color: var(--brand-900); box-shadow: 0 0 0 1px var(--brand-800) inset; }
+  .choice:has(input:focus-visible) { outline: 3px solid var(--ring); outline-offset: 2px; }
+}
+
+/* Weekly planner (screen) */
+.planner-date-band { border-color: #d3e0db; background: linear-gradient(110deg, #eef5f2, #f8fbfa); box-shadow: inset 0 1px rgb(255 255 255 / 90%); }
+.planner-table-shell { box-shadow: var(--shadow-md); }
+.planner-table-heading { background: linear-gradient(105deg, #0f3430, #1d5a50); }
+.planner-table-shell tbody tr:hover th, .planner-table-shell tbody tr:hover td { background-color: #f6faf8; }
+/* Keep planner column order stable while each cell follows its own text direction. */
+#weekly-plan-print table { direction: ltr; font-size: 16px; }
+#weekly-plan-print .planner-table-heading th { background: #123b36; color: #fff; font-size: 15px; letter-spacing: .015em; }
+#weekly-plan-print tbody td { font-size: 20px; line-height: 1.7; }
+#weekly-plan-print tbody th { font-size: 17px; }
+#weekly-plan-print .planner-date-band { font-size: 17px; font-weight: 800; }
+#weekly-plan-print .planner-date-value strong { font-size: 1.12em; font-weight: 900; }
+#weekly-plan-print .planner-table-shell { border: 3px solid #123b36; }
+#weekly-plan-print .planner-value { unicode-bidi: plaintext; }
+#weekly-plan-print .planner-value-display { display: block; }
+.planner-value-selected { outline: 2px solid #0891b2; outline-offset: -2px; background-color: rgb(236 254 255 / 55%); border-radius: 4px; }
+.planner-editable-value { min-height: 1.5em; field-sizing: content; font: inherit; }
+.planner-value-display { border: 0; background: transparent; font: inherit; color: inherit; white-space: pre-wrap; }
+
+/* Admin bulk-assignment horizontal scroller */
+.admin-assignment-scroll { scrollbar-width: auto; scrollbar-color: #1d5a50 #e6eeeb; }
+.admin-assignment-scroll::-webkit-scrollbar { height: 13px; }
+.admin-assignment-scroll::-webkit-scrollbar-track { background: #e6eeeb; border-radius: 999px; }
+.admin-assignment-scroll::-webkit-scrollbar-thumb { background: #1d5a50; border: 3px solid #e6eeeb; border-radius: 999px; }
+@media print {
+  body:has(#student-report-print) * { visibility: hidden !important; }
+  #student-report-print, #student-report-print * { visibility: visible !important; }
+  #student-report-print { position: absolute !important; inset: 0 auto auto 0 !important; width: 100% !important; max-width: none !important; border: 0 !important; box-shadow: none !important; }
+  #student-report-print table { width: 100% !important; min-width: 0 !important; border-collapse: collapse !important; }
+  #student-report-print th, #student-report-print td { border: 1px solid #94a3b8 !important; padding: 8px !important; }
+  #student-report-print th { background: #eef3f1 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  #student-report-print .overflow-x-auto { overflow: visible !important; }
+  #student-report-print tr { break-inside: avoid; }
+}
+
+@media print {
+  @page weekly-plan { size: A4 landscape; margin: 8mm; }
+  html, body { width: auto !important; min-height: 0 !important; margin: 0 !important; background: #fff !important; }
+  body * { visibility: hidden !important; }
+  #weekly-plan-print, #weekly-plan-print * { visibility: visible !important; }
+  #weekly-plan-print { page: weekly-plan !important; font-family: "Aptos", "Segoe UI", Arial, sans-serif !important; position: absolute !important; top: 0 !important; left: 0 !important; width: 100% !important; margin: 0 !important; overflow: visible !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: #fff !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #weekly-plan-print .no-print { display: none !important; }
+  #weekly-plan-print .planner-print-header { padding: 2mm 2mm 3mm !important; }
+  #weekly-plan-print .planner-school-header { grid-template-columns: 18mm 1fr 18mm !important; gap: 4mm !important; }
+  #weekly-plan-print .planner-school-header img { width: 17mm !important; height: 17mm !important; }
+  #weekly-plan-print .planner-date-band { font-size: 12pt !important; font-weight: 800 !important; }
+  #weekly-plan-print .planner-date-value strong { font-size: 13pt !important; font-weight: 900 !important; }
+  #weekly-plan-print .planner-table-shell { border: 2.5px solid #123b36 !important; border-radius: 0 !important; }
+  #weekly-plan-print table { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; border-collapse: collapse !important; font-size: 11pt !important; }
+  #weekly-plan-print th, #weekly-plan-print td { border: 1px solid #111 !important; padding: 2mm 2.5mm !important; vertical-align: middle !important; }
+  #weekly-plan-print .planner-table-heading { background: #123b36 !important; color: #fff !important; font-size: 11pt !important; }
+  #weekly-plan-print tbody th, #weekly-plan-print tbody td, #weekly-plan-print tfoot th, #weekly-plan-print tfoot td, #weekly-plan-print .planner-date-band { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #weekly-plan-print .planner-value-display { display: block !important; width: 100% !important; padding: 0 !important; border: 0 !important; background: transparent !important; text-align: inherit !important; cursor: default !important; }
+  #weekly-plan-print .planner-editable-value { display: block !important; width: 100% !important; min-height: 0 !important; height: auto !important; resize: none !important; overflow: visible !important; padding: 0 !important; border: 0 !important; background: transparent !important; outline: none !important; field-sizing: content !important; font-family: inherit !important; font-size: inherit; font-weight: inherit; line-height: inherit; color: inherit; }
+  #weekly-plan-print .planner-value-selected { outline: none !important; background: transparent !important; }
+  #weekly-plan-print tbody td, #weekly-plan-print tfoot td { font-size: 12pt !important; font-weight: 600 !important; line-height: 1.6 !important; }
+  #weekly-plan-print .planner-print-header, #weekly-plan-print .planner-table-heading, #weekly-plan-print tbody th, #weekly-plan-print tfoot th { font-family: "Aptos", "Segoe UI", Arial, sans-serif !important; font-weight: 800 !important; letter-spacing: .01em; }
+  #weekly-plan-print tbody th { font-size: 11.5pt !important; }
+  #weekly-plan-print tr { break-inside: avoid !important; page-break-inside: avoid !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
+/* Final report print layout: fill portrait sheets with evenly spaced subject cards. */
+@media print {
+  #student-reports-print .student-report-sheet {
+    min-height: 276mm !important;
+    height: 276mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 5mm !important;
+  }
+  #student-reports-print .student-report-header { flex: 0 0 auto !important; }
+  #student-reports-print .student-report-subject-grid {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+    align-content: stretch !important;
+    gap: 6mm !important;
+  }
+  #student-reports-print .report-subject-card {
+    min-height: 0 !important;
+    height: 100% !important;
+    padding: 5mm !important;
+    font-size: 10pt !important;
+    line-height: 1.45 !important;
+  }
+  #student-reports-print .report-subject-card h4 { font-size: 13pt !important; }
+  #student-reports-print .report-subject-card .text-xl { font-size: 15pt !important; }
+  #student-reports-print .report-subject-card .text-sm { font-size: 10pt !important; }
+  #student-reports-print .report-subject-card .text-xs { font-size: 9pt !important; }
+  #student-reports-print .report-subject-card ul { font-size: 10pt !important; line-height: 1.5 !important; }
+  #student-reports-print .student-report-sheet > .mt-5 { flex: 0 0 auto !important; margin-top: 4mm !important; }
+}
+
+@media print {
+  #student-reports-print .student-report-sheet:has(.student-report-subject-grid > :nth-child(2):last-child) .student-report-subject-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  #student-reports-print .student-report-sheet:has(.student-report-subject-grid > :nth-child(3):last-child) .student-report-subject-grid > :nth-child(3):last-child {
+    grid-column: 1 / -1 !important;
+  }
+}
+
+/* Refine report sheets: remove page frame and improve text rhythm without stretching cards. */
+@media print {
+  #student-reports-print .student-report-sheet {
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+  #student-reports-print .student-report-subject-grid {
+    display: grid !important;
+    flex: none !important;
+    grid-auto-rows: auto !important;
+    align-content: start !important;
+    gap: 4mm !important;
+  }
+  #student-reports-print .report-subject-card {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 4mm !important;
+    line-height: 1.6 !important;
+  }
+  #student-reports-print .report-subject-card > div:first-child p,
+  #student-reports-print .report-subject-card > p,
+  #student-reports-print .report-subject-card li {
+    line-height: 1.7 !important;
+  }
+  #student-reports-print .report-subject-card ul { line-height: 1.7 !important; }
+  #student-reports-print .report-subject-card .mt-3 { margin-top: 3mm !important; }
+  #student-reports-print .report-subject-card .mt-2 { margin-top: 2mm !important; }
+  #student-reports-print .report-subject-card .pt-2 { padding-top: 2.5mm !important; }
+}
+
+@page student-report { size: A4 portrait; margin: 6mm; }
+@media print {
+  #student-reports-print .student-report-sheet { width: 100% !important; }
+  #student-reports-print .student-report-subject-grid {
+    width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  #student-reports-print .report-subject-card { min-width: 0 !important; }
+}
+
+/* Report visual refinements requested: colored school header and stronger subject-card outlines. */
+.student-report-header {
+  background: linear-gradient(135deg, #e8f6f2 0%, #f1f7fb 100%) !important;
+}
+.report-subject-card { border: 2px solid #8eb6ad !important; }
+@media print {
+  .student-report-header {
+    background: linear-gradient(135deg, #e8f6f2 0%, #f1f7fb 100%) !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .report-subject-card { border: 2px solid #8eb6ad !important; }
+}
+
+/* Final report spacing and card-outline adjustments. */
+.report-subject-card { border: 3px solid #5f968d !important; }
+.student-report-parent-note { margin-top: 1.5rem !important; margin-bottom: 2rem !important; }
+.report-subject-card { margin-bottom: 0.75rem !important; }
+@media print {
+  .report-subject-card { border-width: 3px !important; margin-bottom: 6mm !important; }
+  .student-report-parent-note { margin-top: 5mm !important; margin-bottom: 7mm !important; }
+}
