@@ -24,7 +24,7 @@ function SubjectReportCard({ report, showIxl, locale }: { report: Report; showIx
     <div className="flex items-start justify-between gap-2"><div><h4 className="text-lg font-black text-[#19344d] print:text-base">{rtl ? arabicSubjectName(report.subject.name) : report.subject.name}</h4><p className="mt-1 text-xs text-[#66829c]">{rtl ? 'المعلم' : 'Teacher'}: <strong className="font-bold text-[#294563]">{report.teacher.name}</strong><span className="ms-2">· {rtl ? 'التاريخ' : 'Date'}: <strong className="font-bold text-[#294563]">{new Date(report.updatedAt).toLocaleDateString('en-GB')}</strong></span></p></div><span className="shrink-0 rounded-full bg-[#0f766e] px-3 py-1.5 text-xs font-extrabold text-white">{rtl ? arabicReportStatus(report.status) : report.status}</span></div>
     <div className="mt-3 grid grid-cols-2 gap-2 text-sm">{[[rtl ? 'درجة الاختبار القصير' : 'Quiz mark', report.quizScore], [rtl ? 'درجة المشروع' : 'Project mark', report.projectScore]].map(([name, score]) => <div key={String(name)} className="rounded-xl bg-[#f1f7fa] px-3 py-2 text-center"><span className="block text-[11px] font-bold text-[#66829c]">{name}</span><strong className="mt-0.5 block text-xl font-black text-[#19344d] print:text-lg">{score ?? '—'}{score !== null ? ' / 20' : ''}</strong></div>)}{showIxl && <p className="col-span-2 rounded-xl bg-[#f1f7fa] px-3 py-2"><span className="text-xs font-bold text-[#66829c]">{rtl ? 'تدريبات IXL' : 'IXL Practices'}:</span> <strong>{report.ixlPracticeStatus ? (rtl ? arabicReportValue(report.ixlPracticeStatus) : report.ixlPracticeStatus === 'Complete' ? 'Complete' : report.ixlPracticeStatus === 'Incomplete' ? 'Incomplete' : 'Missing') : '—'}</strong></p>}</div>
     {report.recommendations?.length > 0 && <div className="mt-3"><p className="mb-1.5 text-xs font-black uppercase tracking-wide text-[#66829c]">{rtl ? 'التوصيات' : 'Recommendations'}</p><ul className="list-disc space-y-1 ps-5 text-sm font-semibold leading-relaxed text-[#294563]">{report.recommendations.map((recommendation, index) => <li key={`${report.id}-${index}`}>{rtl ? arabicReportValue(recommendation) : englishReportValue(recommendation)}</li>)}</ul></div>}
-    <p className="mt-3 whitespace-pre-wrap border-t border-[#d8e4ed] pt-2 text-sm font-semibold leading-relaxed text-[#294563]"><strong className="text-[#19344d]">{rtl ? 'ملاحظة المعلم' : 'Teacher note'}:</strong> {report.comment || '—'}</p><div className="mt-2 flex items-end gap-2 text-xs font-semibold text-[#66829c]"><span>{rtl ? 'توقيع المعلم' : 'Teacher signature'}:</span>{report.teacher.signature ? <img src={report.teacher.signature} alt={rtl ? 'توقيع المعلم' : 'Teacher signature'} className="h-10 w-32 object-contain object-left-bottom" /> : <span aria-hidden className="inline-block h-5 min-w-36 flex-1 border-b border-slate-400" />}</div>
+    <p className="mt-3 whitespace-pre-wrap border-t border-[#d8e4ed] pt-2 text-sm font-semibold leading-relaxed text-[#294563]"><strong className="text-[#19344d]">{rtl ? 'ملاحظة المعلم' : 'Teacher note'}:</strong> {report.comment || '—'}</p><div className="report-signature-row mt-2 flex flex-nowrap items-center gap-1 text-xs font-semibold text-[#66829c]"><span className="shrink-0 whitespace-nowrap">{rtl ? 'توقيع المعلم' : 'Teacher signature'}:</span>{report.teacher.signature ? <img src={report.teacher.signature} alt={rtl ? 'توقيع المعلم' : 'Teacher signature'} className="report-signature-image h-6 w-24 shrink-0 object-contain object-left-bottom" /> : <span aria-hidden className="report-signature-blank inline-block h-3 min-w-20 flex-1 border-b border-slate-400" />}</div>
   </section>;
 }
 
@@ -33,6 +33,9 @@ export default function ReportsPage() {
   const locale = useLocale();
   const { data: session, status: sessionStatus } = useSession();
   const router = useRouter();
+  const sessionUserId = session?.user.id;
+  const sessionRole = session?.user.role;
+  const loadErrorMessage = t('loadError');
   const isAdmin = session?.user.role === 'ADMIN';
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -54,7 +57,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') router.replace('/login');
-    if (sessionStatus === 'authenticated' && !['ADMIN', 'TEACHER'].includes(session?.user.role ?? '')) router.replace('/');
+    if (sessionStatus === 'authenticated' && !['ADMIN', 'TEACHER'].includes(sessionRole ?? '')) router.replace('/');
     if (sessionStatus !== 'authenticated') return;
     let live = true;
     void fetch('/api/students', { cache: 'no-store' }).then(async (response) => {
@@ -65,10 +68,9 @@ export default function ReportsPage() {
       const defaultTeacher = data.teachers?.[0]?.id ?? '';
       const defaultSubject = data.subjects?.[0]?.id ?? '';
       setTeacherId(defaultTeacher); setSubjectId(defaultSubject);
-      if (data.classes?.length) setClassId(data.classes[0].id);
-    }).catch(() => toast.error(t('loadError')));
+    }).catch(() => toast.error(loadErrorMessage));
     return () => { live = false; };
-  }, [sessionStatus, session, router]);
+  }, [sessionStatus, sessionUserId, sessionRole, router, loadErrorMessage]);
 
   const selectedTeacher = teachers.find((item) => item.id === teacherId);
   const visibleClasses = useMemo(() => [...classes].sort((a, b) => {
@@ -94,7 +96,6 @@ export default function ReportsPage() {
     try {
       const query = new URLSearchParams({ classId, academicYear: academicYear.trim(), semester, reportType });
       if (!isAdmin) query.set('subjectId', subjectId);
-      else if (teacherId) query.set('teacherId', teacherId);
       const response = await fetch('/api/reports?' + query.toString(), { cache: 'no-store' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
@@ -112,7 +113,6 @@ export default function ReportsPage() {
   }
 
   useEffect(() => { setReports([]); setLoaded(false); setStudentIndex(null); }, [classId, subjectId, teacherId, semester, reportType, academicYear]);
-  useEffect(() => { if (sessionStatus === 'authenticated' && classId && (isAdmin || subjectId) && academicYear.trim()) void loadReports(); }, [sessionStatus, classId, subjectId, semester, reportType, academicYear, isAdmin]);
   useEffect(() => {
     if (!printStudentId) return;
     const finish = () => setPrintStudentId('');
@@ -171,7 +171,7 @@ export default function ReportsPage() {
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4"><p className="text-sm text-slate-500">{selectedClass ? t('students', { count: students.length, semester: t(semester === '1st Semester' ? 'firstSemester' : 'secondSemester') }) : t('chooseClass')}</p><div className="flex gap-2"><button type="button" disabled={!classId || loading} onClick={() => void loadReports()} className="rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">{loading ? t('refreshing') : t('refresh')}</button><button type="button" disabled={!classId || loading || reports.length === 0} onClick={() => window.print()} className="rounded-xl bg-[#123b36] px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{t('printFullReport')}</button></div></div>
     </section>
     <ReportSubjectOrder onOrderSaved={refreshReportSubjectOrder} />
-    {!classId ? <p className="rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500 print:hidden">{t('chooseClass')}</p> : loading && !loaded ? <p className="px-5 py-12 text-center text-sm text-slate-500 print:hidden">{t('loading')}</p> : <section id="student-reports-print" className="w-full space-y-6 rounded-2xl bg-white p-4 sm:p-7 xl:p-9 print:max-w-none print:space-y-0 print:p-0">
+    {!classId ? <p className="rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500 print:hidden">{t('chooseClass')}</p> : loading && !loaded ? <p className="px-5 py-12 text-center text-sm text-slate-500 print:hidden">{t('loading')}</p> : !loaded ? <p className="rounded-2xl border border-slate-200 bg-white px-5 py-12 text-center text-sm text-slate-500 print:hidden">{t('refresh')}</p> : <section id="student-reports-print" className="w-full space-y-6 rounded-2xl bg-white p-4 sm:p-7 xl:p-9 print:max-w-none print:space-y-0 print:p-0">
       {students.map((student, studentIndex) => {
         const studentReports = reports.filter((report) => report.studentId === student.id).sort((a, b) => (a.subjectPosition ?? gradeSubjectPositions.get(a.subjectId) ?? Number.MAX_SAFE_INTEGER) - (b.subjectPosition ?? gradeSubjectPositions.get(b.subjectId) ?? Number.MAX_SAFE_INTEGER) || a.subject.name.localeCompare(b.subject.name));
         const reportPages = Array.from({ length: Math.max(1, Math.ceil(studentReports.length / 4)) }, (_, index) => studentReports.slice(index * 4, index * 4 + 4));
@@ -201,7 +201,7 @@ export default function ReportsPage() {
     </section>
     <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6"><div><h2 className="text-lg font-bold text-slate-900">{selectedClass?.name ?? t('roster')}</h2><p className="mt-1 text-sm text-slate-500">{selectedClass ? t('students', { count: students.length, semester: t(semester === '1st Semester' ? 'firstSemester' : 'secondSemester') }) : t('chooseFilters')}</p></div><button type="button" disabled={!classId || !subjectId || loading} onClick={() => void loadReports()} className="rounded-xl border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50">{loading ? t('refreshing') : t('refresh')}</button></div>
-      {!classId || !subjectId ? <p className="px-5 py-12 text-center text-sm text-slate-500">{t('chooseFilters')}</p> : loading && !loaded ? <p className="px-5 py-12 text-center text-sm text-slate-500">{t('loading')}</p> : <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">#</th><th className="px-5 py-3">{t('student')}</th><th className="px-5 py-3">{t('status')}</th><th className="px-5 py-3">{t('action')}</th></tr></thead><tbody className="divide-y divide-slate-100">{students.map((student, index) => { const report = reports.find((item) => item.studentId === student.id && item.subjectId === subjectId && item.academicYear === academicYear && item.semester === semester && item.reportType === reportType && (!isAdmin || item.teacherId === teacherId)); return <tr key={student.id} className="hover:bg-emerald-50/30"><td className="px-5 py-3.5 text-slate-500">{index + 1}</td><td className="px-5 py-3.5"><span className="font-semibold text-slate-900">{student.name}</span></td><td className="px-5 py-3.5">{report ? <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">{t('saved')}</span> : <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">{t('notStarted')}</span>}</td><td className="px-5 py-3.5"><button type="button" onClick={() => openStudent(index)} className={report ? 'rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700' : 'rounded-lg bg-[#123b36] px-3 py-1.5 text-xs font-bold text-white'}>{report ? t('edit') : t('add')}</button></td></tr>; })}{students.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-slate-500">{t('noStudents')}</td></tr>}</tbody></table></div>}
+      {!classId || !subjectId ? <p className="px-5 py-12 text-center text-sm text-slate-500">{t('chooseFilters')}</p> : loading && !loaded ? <p className="px-5 py-12 text-center text-sm text-slate-500">{t('loading')}</p> : !loaded ? <p className="px-5 py-12 text-center text-sm text-slate-500">{t('refresh')}</p> : <div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">#</th><th className="px-5 py-3">{t('student')}</th><th className="px-5 py-3">{t('status')}</th><th className="px-5 py-3">{t('action')}</th></tr></thead><tbody className="divide-y divide-slate-100">{students.map((student, index) => { const report = reports.find((item) => item.studentId === student.id && item.subjectId === subjectId && item.academicYear === academicYear && item.semester === semester && item.reportType === reportType && (!isAdmin || item.teacherId === teacherId)); return <tr key={student.id} className="hover:bg-emerald-50/30"><td className="px-5 py-3.5 text-slate-500">{index + 1}</td><td className="px-5 py-3.5"><span className="font-semibold text-slate-900">{student.name}</span></td><td className="px-5 py-3.5">{report ? <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800">{t('saved')}</span> : <span className="inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">{t('notStarted')}</span>}</td><td className="px-5 py-3.5"><button type="button" onClick={() => openStudent(index)} className={report ? 'rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700' : 'rounded-lg bg-[#123b36] px-3 py-1.5 text-xs font-bold text-white'}>{report ? t('edit') : t('add')}</button></td></tr>; })}{students.length === 0 && <tr><td colSpan={4} className="px-5 py-10 text-center text-slate-500">{t('noStudents')}</td></tr>}</tbody></table></div>}
     </section>
 
     {currentStudent && studentIndex !== null && <StudentReportModal student={currentStudent} className={selectedClass?.name ?? ''} subjectName={selectedSubject ? isArabicTaughtSubject(selectedSubject.name) ? arabicSubjectName(selectedSubject.name) : selectedSubject.name : ''} showIxl={showIxl} arabicSubject={arabicSubject} index={studentIndex} total={students.length} editing={Boolean(currentReport)} saving={saving} draft={draft} onDraftChange={setDraft} onPrevious={() => openStudent(studentIndex - 1)} onClose={closeModal} onSubmit={saveAndAdvance} />}

@@ -19,6 +19,37 @@ main > section:not(#weekly-plan-print), main > form { box-shadow: 0 16px 42px -3
 .planner-table-shell { box-shadow: 0 16px 38px -30px rgb(15 45 40 / 40%); }
 .planner-table-heading { background: linear-gradient(105deg, #123b36, #245e55); }
 .planner-table-shell tbody tr:hover th, .planner-table-shell tbody tr:hover td { background-color: #f8faf9; }
+.planner-modern-print { display: none; }
+.planner-bold-value, .planner-bold-value * { font-weight:800 !important; }
+.planner-table-shell tbody td, .planner-table-shell tfoot tr:first-child td { font-weight: 700; }
+.planner-modern-header { display:flex; align-items:center; justify-content:space-between; gap:24px; border-top:6px solid #0f998c; padding:18px 0 12px; color:#111827; }
+.planner-modern-eyebrow { margin:0; color:#64748b; font-size:12px; letter-spacing:.04em; }
+.planner-modern-header h1 { margin:0; font-size:38px; line-height:1.08; font-weight:800; letter-spacing:-.03em; }
+.planner-modern-school { margin:5px 0 0; color:#0f998c; font-size:12px; font-weight:800; }
+.planner-modern-campus { margin:1px 0 0; color:#64748b; font-size:14px; font-weight:500; letter-spacing:.02em; }
+.planner-modern-badges { display:flex; gap:12px; }
+.planner-modern-badges div { display:grid; min-width:105px; padding:10px 18px; border-radius:14px; text-align:center; }
+.planner-modern-badges span { color:#64748b; font-size:10px; }
+.planner-modern-badges strong { font-size:24px; line-height:1.3; }
+.planner-modern-badges .grade { background:#ecfdf5; color:#059669; }
+.planner-modern-badges .week { background:#eff6ff; color:#2563eb; }
+.planner-modern-badges .semester { background:#fef3c7; color:#d97706; }
+.planner-modern-focus { display:flex; align-items:center; justify-content:center; gap:16px; margin:0 0 18px; padding:12px; border:1px solid #dbe4ee; border-radius:12px; color:#1e293b; font-size:14px; font-weight:800; }
+.planner-modern-focus span, .planner-modern-focus strong { font-weight:800; }
+.planner-modern-focus strong { color:#64748b; font-size:12px; }
+.planner-modern-focus i { height:22px; border-left:1px solid #cbd5e1; }
+.planner-modern-table { width:100%; border-collapse:collapse; table-layout:fixed; color:#1e293b; font-size:15px; }
+.planner-modern-table thead { background:#0f998c; color:#fff; }
+.planner-modern-table th, .planner-modern-table td { padding:14px 12px; text-align:start; vertical-align:middle; border-bottom:1px solid #dce5ef; }
+.planner-modern-table thead th { text-align:center; font-weight:800; }
+.planner-modern-table tbody th { width:14%; font-weight:800; white-space:nowrap; }
+.planner-modern-table tbody td { width:43%; line-height:1.45; white-space:pre-wrap; }
+.planner-modern-table tr.shade { background:#f1f5f9; }
+.planner-modern-table .planner-bold-value { font-weight:800; }
+.planner-subject-dot { display:inline-block; width:12px; height:12px; margin-inline-end:9px; border-radius:50%; background:#14b8a6; vertical-align:middle; }
+.planner-subject-dot.dot-1 { background:#f59e0b; } .planner-subject-dot.dot-2 { background:#3b82f6; } .planner-subject-dot.dot-3 { background:#ec4899; } .planner-subject-dot.dot-4 { background:#8b5cf6; } .planner-subject-dot.dot-5 { background:#10b981; } .planner-subject-dot.dot-6 { background:#f97316; } .planner-subject-dot.dot-7 { background:#06b6d4; }
+.planner-modern-full-row td { font-weight:800; }
+.planner-modern-footer { display:flex; justify-content:space-between; margin-top:18px; color:#94a3b8; font-size:10px; }
 /* Keep planner column order stable while each cell follows its own text direction. */
 #weekly-plan-print table { direction: ltr; font-size: 16px; }
 #weekly-plan-print .planner-table-heading th { background: #123b36; color: #fff; font-size: 15px; letter-spacing: .015em; }
@@ -40,6 +71,23 @@ main > section:not(#weekly-plan-print), main > form { box-shadow: 0 16px 42px -3
 .admin-assignment-scroll::-webkit-scrollbar { height: 13px; }
 .admin-assignment-scroll::-webkit-scrollbar-track { background: #e2e8f0; border-radius: 999px; }
 .admin-assignment-scroll::-webkit-scrollbar-thumb { background: #123b36; border: 3px solid #e2e8f0; border-radius: 999px; }
+
+/* Shared workspace finish: calm surfaces, consistent focus states, and a restrained teal accent. */
+:root { --brand-950: #123b36; --brand-800: #17635a; --ink: #1b302f; --muted: #647774; --line: #dfe8e5; }
+body { background-color: #f5f8f7; }
+main:not(:has(#weekly-plan-print)) { animation: workspace-enter 260ms ease-out both; }
+main:not(:has(#weekly-plan-print)) > section:not(#weekly-plan-print),
+main:not(:has(#weekly-plan-print)) > form,
+main:not(:has(#weekly-plan-print)) article.rounded-2xl,
+main:not(:has(#weekly-plan-print)) section.rounded-2xl {
+  border-color: #e1e9e6;
+  box-shadow: 0 12px 34px -30px rgb(22 55 49 / 42%), 0 1px 2px rgb(22 55 49 / 3%);
+}
+main:not(:has(#weekly-plan-print)) table thead { color: #526663; }
+main:not(:has(#weekly-plan-print)) table tbody tr { transition: background-color 140ms ease; }
+button:not(:disabled), a { transition-property: color, background-color, border-color, box-shadow, transform; transition-duration: 160ms; }
+@keyframes workspace-enter { from { opacity: .86; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { main:not(:has(#weekly-plan-print)) { animation: none; } }
 
 /* Workspace pages use the full available canvas; navigation stays visually distinct. */
 header.no-print { box-shadow: 0 8px 28px -24px rgb(15 45 40 / 48%); }
@@ -96,8 +144,47 @@ main > #student-reports-print { width: 100%; max-width: none; }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
 
+@media print {
+  #weekly-plan-print[data-print-design="planner"] { display:flex !important; flex-direction:column !important; width:100% !important; height:194mm !important; min-height:194mm !important; max-height:194mm !important; overflow:hidden !important; }
+  #weekly-plan-print[data-print-design="legacy"] .planner-table-shell tbody td,
+  #weekly-plan-print[data-print-design="legacy"] .planner-table-shell tfoot tr:first-child td { font-weight:800 !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-legacy-print { display:none !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-table-shell { display:none !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-print { display:flex !important; flex:1 1 auto !important; flex-direction:column !important; min-height:0 !important; height:100% !important; page:weekly-plan !important; zoom:1 !important; width:100% !important; max-width:100% !important; padding:0; break-inside:avoid !important; page-break-inside:avoid !important; }
+  #weekly-plan-print[data-print-design="legacy"] .planner-modern-print { display:none !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-header { gap:4mm !important; padding:3mm 0 2mm !important; border-top-width:2mm; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-header h1 { font-size:26pt !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-school { margin-top:1mm !important; font-size:9pt !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-campus { font-size:10pt !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-badges { gap:2mm !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-badges div { min-width:22mm !important; padding:1.5mm 3mm !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-badges strong { font-size:17pt !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-focus { gap:3mm !important; margin-bottom:3mm !important; padding:1.5mm 2mm !important; font-size:10pt !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-table { flex:1 1 auto !important; min-height:0 !important; height:100% !important; width:100% !important; max-width:100% !important; font-size:11pt !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-table .planner-bold-value { font-weight:800 !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-table th,
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-table td { padding:2mm 2.5mm !important; border:0 !important; border-bottom:0.25mm solid #dce5ef !important; line-height:1.3 !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-table thead { background:#0f998c !important; color:#fff !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-table tr.shade { background:#f1f5f9 !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-badges div { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+  #weekly-plan-print[data-print-design="planner"] .planner-modern-footer { margin-top:3mm !important; font-size:8pt !important; }
+}
+
 /* Final report print layout: use the portrait page height and distribute subject cards evenly. */
 @media print {
+  #student-reports-print {
+    inset-block-start: 0 !important;
+  }
+  #student-reports-print .student-report-sheet > .no-print {
+    display: none !important;
+  }
+  #student-reports-print .student-report-sheet:first-child {
+    margin-block-start: 0 !important;
+    padding-block-start: 2mm !important;
+  }
+  #student-reports-print .student-report-sheet:first-child > .student-report-header {
+    margin-block-start: 0 !important;
+  }
   #student-reports-print .student-report-sheet {
     min-height: 276mm !important;
     height: 276mm !important;
@@ -546,7 +633,89 @@ main > section:not(#weekly-plan-print), main > form { box-shadow: var(--shadow-m
 .report-subject-card { border: 3px solid #5f968d !important; }
 .student-report-parent-note { margin-top: 1.5rem !important; margin-bottom: 2rem !important; }
 .report-subject-card { margin-bottom: 0.75rem !important; }
+.report-signature-row { min-height:24px; }
+.report-signature-image { display:block; width:96px; height:24px; flex:0 0 auto; object-fit:contain; object-position:left bottom; }
+.report-signature-blank { flex:1 1 auto; min-width:72px; height:12px; }
 @media print {
-  .report-subject-card { border-width: 3px !important; margin-bottom: 6mm !important; }
-  .student-report-parent-note { margin-top: 5mm !important; margin-bottom: 7mm !important; }
+  .report-subject-card { border-width: 3px !important; margin: 0 !important; }
+  .student-report-parent-note { margin-top: 2mm !important; margin-bottom: 3mm !important; }
+  #student-reports-print .student-report-header { margin-bottom: 2mm !important; }
+  #student-reports-print .student-report-subject-grid { gap: 2.5mm !important; }
+  #student-reports-print .report-subject-card { padding: 2.5mm !important; break-inside: avoid !important; page-break-inside: avoid !important; }
+  #student-reports-print .report-subject-card > div:first-child p,
+  #student-reports-print .report-subject-card > p,
+  #student-reports-print .report-subject-card li { line-height: 1.3 !important; }
+  #student-reports-print .report-subject-card ul { line-height: 1.25 !important; }
+  #student-reports-print .report-subject-card .mt-3 { margin-top: 1mm !important; }
+  #student-reports-print .report-subject-card .mt-2 { margin-top: .75mm !important; }
+  #student-reports-print .report-subject-card .pt-2 { padding-top: .75mm !important; }
+  #student-reports-print .report-signature-row { display:flex !important; flex-wrap:nowrap !important; align-items:center !important; gap:1mm !important; width:100% !important; min-height:5mm !important; height:5mm !important; max-height:5mm !important; margin-top:.75mm !important; overflow:hidden !important; white-space:nowrap !important; font-size:7pt !important; line-height:1 !important; }
+  #student-reports-print .report-signature-image { display:block !important; flex:0 0 22mm !important; width:22mm !important; min-width:22mm !important; height:4mm !important; max-height:4mm !important; object-fit:contain !important; object-position:left center !important; }
+  #student-reports-print .report-signature-blank { flex:1 1 auto !important; min-width:18mm !important; height:2.5mm !important; max-height:2.5mm !important; }
+}
+
+/* Keep report content at the top of each page and cards at their natural height. */
+@media print {
+  #student-reports-print .student-report-sheet {
+    box-sizing: border-box !important;
+    display: block !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin-block-start: 0 !important;
+    padding: 2mm 1mm 4mm !important;
+  }
+  #student-reports-print .student-report-header {
+    margin-top: 6mm !important;
+    margin-bottom: 6mm !important;
+  }
+  #student-reports-print .student-report-parent-note {
+    margin-top: 0 !important;
+    margin-bottom: 7mm !important;
+  }
+  #student-reports-print .student-report-subject-grid {
+    display: grid !important;
+    flex: none !important;
+    align-content: start !important;
+    grid-auto-rows: auto !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    column-gap: 3mm !important;
+    row-gap: 8mm !important;
+  }
+  #student-reports-print .report-subject-card {
+    box-sizing: border-box !important;
+    min-height: 0 !important;
+    height: auto !important;
+    padding: 4mm !important;
+  }
+  #student-reports-print {
+    top: 0 !important;
+    inset-block-start: 0 !important;
+  }
+  #student-reports-print .student-report-sheet > .no-print {
+    display: none !important;
+  }
+  #student-reports-print .student-report-sheet:first-child {
+    margin-block-start: 0 !important;
+    padding-block-start: 2mm !important;
+    position: relative !important;
+    top: -48mm !important;
+  }
+  #student-reports-print .student-report-sheet:first-child > .student-report-header {
+    margin-block-start: 0 !important;
+  }
+}
+@page student-report { size: A4 portrait; margin: 4mm; }
+@media print {
+  #student-reports-print .report-subject-card {
+    line-height: 1.6 !important;
+  }
+  #student-reports-print .report-subject-card > div:first-child p,
+  #student-reports-print .report-subject-card > p,
+  #student-reports-print .report-subject-card li,
+  #student-reports-print .report-subject-card ul {
+    line-height: 1.6 !important;
+  }
+  #student-reports-print .report-subject-card h4 {
+    line-height: 1.35 !important;
+  }
 }

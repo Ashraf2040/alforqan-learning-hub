@@ -11,7 +11,7 @@ async function requireAdmin() {
 export async function GET() {
   if (!await requireAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const [teachers, classes, subjects] = await Promise.all([
-    prisma.user.findMany({ where: { role: 'TEACHER' }, orderBy: { name: 'asc' }, select: { id: true, name: true, username: true, classes: { select: { id: true, name: true } }, classTeacherAssignments: { include: { class: { select: { id: true, name: true } } } }, subjects: { select: { id: true, name: true } }, subjectTeacherAssignments: { include: { subject: { select: { id: true, name: true } } } } } }),
+    prisma.user.findMany({ where: { role: 'TEACHER' }, orderBy: { name: 'asc' }, select: { id: true, name: true, username: true, email: true, arabicName: true, academicYear: true, school: true, classes: { select: { id: true, name: true } }, classTeacherAssignments: { include: { class: { select: { id: true, name: true } } } }, subjects: { select: { id: true, name: true } }, subjectTeacherAssignments: { include: { subject: { select: { id: true, name: true } } } } } }),
     prisma.class.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     prisma.subject.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
   ]);

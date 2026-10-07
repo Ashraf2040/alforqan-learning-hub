@@ -5,7 +5,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useLocale, useTranslations } from 'next-intl';
 
 const navLink = (active: boolean) =>
-  `relative rounded-lg px-3 py-2 text-sm font-semibold no-underline transition-colors ${active ? 'bg-emerald-50 text-emerald-900' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`;
+  `relative rounded-xl px-3.5 py-2 text-sm font-semibold no-underline transition-all ${active ? 'bg-[#e9f3f1] text-[#123b36] shadow-sm ring-1 ring-[#d7e8e4]' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-950'}`;
 
 export function Navbar() {
   const locale = useLocale();
@@ -18,11 +18,11 @@ export function Navbar() {
     window.location.reload();
   }
   const initial = (session?.user?.name ?? '').trim().charAt(0).toUpperCase();
-  return <header className="no-print sticky top-0 z-40 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
-    <div aria-hidden className="h-[3px] bg-gradient-to-r from-[#0d302c] via-[#1d5a50] to-[#c9972f]" />
-    <nav aria-label="Main navigation" className="flex w-full items-center justify-between gap-3 px-4 py-2.5 sm:px-7 xl:px-10">
+  return <header className="no-print sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 shadow-[0_8px_30px_-28px_rgba(15,45,40,.55)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/82">
+    <div aria-hidden className="h-[3px] bg-gradient-to-r from-[#123b36] via-[#287b78] to-[#d2a64d]" />
+    <nav aria-label="Main navigation" className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-7 xl:px-10">
       <Link href="/" className="group flex min-w-0 items-center gap-3 no-underline">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#1d5a50] to-[#0d302c] text-[13px] font-extrabold tracking-wide text-white shadow-md shadow-emerald-950/20 ring-1 ring-white/20 transition-transform group-hover:scale-105">AF</span>
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#287b78] to-[#123b36] text-[13px] font-extrabold tracking-wide text-white shadow-md shadow-teal-950/20 ring-1 ring-white/20 transition-transform group-hover:scale-105">AF</span>
         <span className="min-w-0 leading-tight"><span className="block truncate text-[15px] font-bold text-[#123b36]">{t('brand')}</span><span className="mt-0.5 hidden truncate text-xs font-medium text-slate-500 sm:block">Al Forqan Schools</span></span>
       </Link>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">

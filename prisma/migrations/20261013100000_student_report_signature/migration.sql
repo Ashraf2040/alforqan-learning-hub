@@ -1,0 +1,2 @@
+-- No schema change is needed here. User.signature was added by
+-- 20261007100000_students_and_reports/migration.sql.

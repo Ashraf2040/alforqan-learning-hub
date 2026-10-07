@@ -77,6 +77,7 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState('');
   const [editValues, setEditValues] = useState(false);
+  const [printDesign, setPrintDesign] = useState<'legacy' | 'planner'>('legacy');
   const [cellValues, setCellValues] = useState<Record<string, string>>({});
   const [cellFormats, setCellFormats] = useState<Record<string, CellFormat[]>>({});
   const [textSelections, setTextSelections] = useState<Record<string, TextSelection>>({});
@@ -209,15 +210,15 @@ export default function AdminPage() {
     changeActiveFormat((current) => ({ ...current, textDecoration: current.textDecoration === 'underline' ? 'none' : 'underline' }));
   }
 
-  function renderFormattedText(key: string, value: string) {
+  function renderFormattedText(key: string, value: string, forceBold = false) {
     const formats = cellFormats[key] ?? [];
     const points = [...new Set([0, value.length, ...formats.flatMap((format) => [Math.max(0, Math.min(value.length, format.start)), Math.max(0, Math.min(value.length, format.end))])])].sort((a, b) => a - b);
-    if (!value) return '—';
+    if (!value) return forceBold ? <strong>—</strong> : '—';
     return points.slice(0, -1).map((from, index) => {
       const to = points[index + 1];
       const format = formats.filter((item) => item.start < to && item.end > from).reduce((merged, item) => ({ ...merged, ...item }), {} as CellFormat);
       const text = value.slice(from, to);
-      return Object.keys(format).length ? <span key={from} style={{ color: format.color, fontSize: format.fontSize, fontWeight: format.fontWeight, textDecoration: format.textDecoration }}>{text}</span> : <span key={from}>{text}</span>;
+      return Object.keys(format).length ? <span key={from} style={{ color: format.color, fontSize: format.fontSize, fontWeight: forceBold ? 900 : format.fontWeight, textDecoration: format.textDecoration }}>{text}</span> : <span key={from} style={forceBold ? { fontWeight: 900 } : undefined}>{text}</span>;
     });
   }
 
@@ -226,8 +227,8 @@ export default function AdminPage() {
     const actualValue = cellValues[key] ?? value;
     const selectedClass = activeCell === key ? 'planner-value-selected' : '';
     const savedStyle = readPlanStyle(plans.map((plan) => plan.items.find((item) => item.subject.id === subjectId)?.[`${field}Style`]).find(Boolean));
-    if (editValues) return <textarea style={savedStyle} aria-label={`${field} for ${subjectId}`} dir="auto" rows={Math.min(6, Math.max(1, actualValue.split('\n').length))} value={actualValue} onFocus={(event) => captureTextSelection(key, event)} onSelect={(event) => captureTextSelection(key, event)} onMouseUp={(event) => captureTextSelection(key, event)} onKeyUp={(event) => captureTextSelection(key, event)} onChange={(event) => { setCellValues((current) => ({ ...current, [key]: event.target.value })); captureTextSelection(key, event); }} className={`planner-editable-value w-full resize-none border-0 bg-transparent p-0 text-start outline-none ${selectedClass}`} />;
-    return <div style={savedStyle} dir="auto" onClick={() => setActiveCell(key)} className={`planner-value-display w-full cursor-text rounded px-1 py-0.5 text-start transition-colors hover:bg-emerald-50/60 ${selectedClass}`}>{renderFormattedText(key, actualValue)}</div>;
+    if (editValues) return <textarea style={{ ...savedStyle, fontWeight: 900 }} aria-label={`${field} for ${subjectId}`} dir="auto" rows={Math.min(6, Math.max(1, actualValue.split('\n').length))} value={actualValue} onFocus={(event) => captureTextSelection(key, event)} onSelect={(event) => captureTextSelection(key, event)} onMouseUp={(event) => captureTextSelection(key, event)} onKeyUp={(event) => captureTextSelection(key, event)} onChange={(event) => { setCellValues((current) => ({ ...current, [key]: event.target.value })); captureTextSelection(key, event); }} className={`planner-bold-value planner-editable-value w-full resize-none border-0 bg-transparent p-0 text-start outline-none ${selectedClass}`} />;
+    return <div style={{ ...savedStyle, fontWeight: 900 }} dir="auto" onClick={() => setActiveCell(key)} className={`planner-bold-value planner-value-display w-full cursor-text rounded px-1 py-0.5 text-start transition-colors hover:bg-emerald-50/60 ${selectedClass}`}>{renderFormattedText(key, actualValue, true)}</div>;
   }
 
   function renderNotesValue() {
@@ -277,6 +278,16 @@ export default function AdminPage() {
     link.download = `weekly-planner-${selectedClass.name}-week-${period.week}.docx`;
     link.click();
     window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+  }
+
+  function printPlanner() {
+    const style = document.createElement('style');
+    style.media = 'print';
+    style.textContent = '@page { size: A4 landscape !important; margin: 8mm !important; }';
+    document.head.appendChild(style);
+    const cleanup = () => { style.remove(); window.removeEventListener('afterprint', cleanup); };
+    window.addEventListener('afterprint', cleanup);
+    try { window.print(); } catch (error) { cleanup(); throw error; }
   }
 
   function changeManageGrade(id: string) {
@@ -361,8 +372,8 @@ export default function AdminPage() {
       </div>
       )}
       {error && <p role="alert" className="no-print mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800">{error}</p>}
-      <section id="weekly-plan-print" className="print-sheet overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5">
-        <div className="planner-print-header border-b-2 border-slate-900 px-5 py-5 sm:px-8">
+      <section id="weekly-plan-print" data-print-design={printDesign} className="print-sheet overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg shadow-slate-900/5">
+        <div className="planner-legacy-print planner-print-header border-b-2 border-slate-900 px-5 py-5 sm:px-8">
           <div className="planner-school-header grid grid-cols-[64px_1fr_64px] items-center gap-3 text-center sm:grid-cols-[80px_1fr_80px] sm:gap-5">
             <Image src="/cognia.png" alt="Cognia accredited school" width={80} height={80} priority className="mx-auto h-14 w-14 object-contain sm:h-16 sm:w-16" />
             <div>
@@ -376,7 +387,15 @@ export default function AdminPage() {
             {period ? <><span>{t('week')} ({period.week}) · {period.semester}</span><span className="planner-date-value">{t('from')}: <strong>{period.from}</strong></span><span className="planner-date-value">{t('to')}: <strong>{period.to}</strong></span><span>{t('grade')} ({selectedGrade?.name})</span></> : <span>{t('weeklyPlanner')}</span>}
           </div>
         </div>
+        {loaded && plans.length > 0 && <article className="planner-modern-print">
+          <header className="planner-modern-header"><div><p className="planner-modern-eyebrow">WEEKLY LEARNING HUB</p><h1>Weekly Planner</h1><p className="planner-modern-school">AL FORQAN PRIVATE SCHOOL "AMERICAN DIVISION"</p><p className="planner-modern-campus">AL BATOOL INTERNATIONAL SCHOOL</p></div><div className="planner-modern-badges"><div className="grade"><span>GRADE</span><strong>{selectedGrade?.name ?? '—'}</strong></div><div className="week"><span>WEEK</span><strong>{period?.week ?? '—'}</strong></div><div className="semester"><span>SEMESTER</span><strong>{period?.semester ?? '—'}</strong></div></div></header>
+          <div className="planner-modern-focus"><strong>PLAN WINDOW</strong><span>{period?.from ?? '—'}　—　{period?.to ?? '—'}</span><i /><strong>FOCUS</strong><span>Class work + Activity &amp; Homework</span></div>
+          <table className="planner-modern-table"><thead><tr><th>SUBJECT</th><th>CLASS WORK</th><th>ACTIVITY ・ HOMEWORK</th></tr></thead><tbody>{planRows.map((row, index) => <tr key={row.subject} className={index % 2 ? 'shade' : ''}><th dir={locale === 'ar' ? 'rtl' : 'auto'}><span className={`planner-subject-dot dot-${index % 8}`} />{subjectLabel(row.subject)}</th><td dir="auto" className="planner-bold-value">{renderFormattedText(`${row.subjectId}:classwork`, cellValues[`${row.subjectId}:classwork`] ?? row.classwork)}</td><td dir="auto" className="planner-bold-value">{renderFormattedText(`${row.subjectId}:homework`, cellValues[`${row.subjectId}:homework`] ?? row.homework)}</td></tr>)}{plans.some((plan) => plan.dictation) && <tr className="planner-modern-full-row"><th>{t('dictation')}</th><td colSpan={2} dir="auto" className="planner-bold-value">{plans.map((plan) => plan.dictation).filter(Boolean).join('\n')}</td></tr>}<tr className="shade planner-modern-full-row"><th>{t('notes')}</th><td colSpan={2} dir="auto">{renderFormattedText('__notes', cellValues.__notes ?? combinedNotes)}</td></tr></tbody></table>
+          <footer className="planner-modern-footer"><span>Al Forqan Private School　·　American Division　·　Confidential</span><span>Generated for print　·　Week {period?.week ?? '—'}</span></footer>
+        </article>}
         <div className="no-print flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50/80 px-4 py-3 sm:px-5">
+          <label className="flex h-9 items-center gap-2 text-sm font-semibold text-slate-700">Print design<select aria-label="Print design" value={printDesign} onChange={(event) => setPrintDesign(event.target.value as 'legacy' | 'planner')} className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm font-medium text-slate-700 shadow-sm"><option value="legacy">Current design</option><option value="planner">Weekly planner design</option></select></label>
+          <span aria-hidden className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
           <button type="button" onClick={() => setEditValues((value) => !value)} disabled={!loaded || !plans.length} className={`inline-flex h-9 items-center rounded-lg border px-3.5 text-sm font-semibold shadow-sm disabled:opacity-40 ${editValues ? 'border-emerald-700 bg-emerald-100 text-emerald-900' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>{editValues ? t('finishEditing') : t('editValues')}</button>
           <span aria-hidden className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
           <select aria-label={t('fontSize')} disabled={!activeCell} value={fontSize} onChange={(event) => { setFontSize(event.target.value); changeActiveFormat((current) => ({ ...current, fontSize: event.target.value })); }} className="h-9 rounded-lg border border-slate-200 bg-white px-2.5 text-sm text-slate-700 shadow-sm disabled:opacity-45"><option value="11pt">11 pt</option><option value="12pt">12 pt</option><option value="14pt">14 pt</option><option value="16pt">16 pt</option><option value="18pt">18 pt</option><option value="22pt">22 pt</option></select>
@@ -386,10 +405,10 @@ export default function AdminPage() {
           <span className="me-auto text-xs font-medium text-slate-500">{activeCell ? t('formatSelected') : t('selectCellToFormat')}</span>
           <button type="button" disabled={!loaded || !plans.length} onClick={downloadCsv} className="btn-secondary !px-4 !py-2 disabled:opacity-40">{t('csv')}</button>
           <button type="button" disabled={!loaded || !plans.length} onClick={downloadDocx} className="inline-flex items-center justify-center rounded-xl border border-emerald-800/25 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-950 shadow-sm hover:bg-emerald-100 disabled:opacity-40">{t('downloadWord')}</button>
-          <button type="button" disabled={!loaded || !plans.length} onClick={() => { setEditValues(false); window.requestAnimationFrame(() => window.print()); }} className="btn-primary !py-2 disabled:opacity-40">{t('print')}</button>
+          <button type="button" disabled={!loaded || !plans.length} onClick={() => { setEditValues(false); window.requestAnimationFrame(printPlanner); }} className="btn-primary !py-2 disabled:opacity-40">{t('print')}</button>
         </div>
         {!loaded ? <p className="no-print px-6 py-14 text-center text-sm text-slate-500">{t('chooseFilters')}</p> : loading ? <p className="px-6 py-14 text-center text-sm text-slate-500">{t('load')}</p> : !plans.length ? <div className="px-6 py-14 text-center"><p className="font-semibold text-slate-700">{t('empty')}</p><p className="mt-1 text-sm text-slate-500">{t('emptyHint')}</p></div> : <div className="planner-table-shell overflow-x-auto rounded-xl border-2 border-[#123b36]"><table className="w-full min-w-[760px] border-collapse text-base"><thead><tr className="planner-table-heading text-center font-bold text-white"><th className="w-[18%] border border-[#2b6158] px-3 py-3">{t('subject')}</th><th className="w-[47%] border border-[#2b6158] px-3 py-3">{t('classwork')}</th><th className="w-[35%] border border-[#2b6158] px-3 py-3">{t('activity')}</th></tr></thead><tbody>{planRows.map((row) => <tr key={row.subject} className="print:break-inside-avoid"><th scope="row" className="border border-slate-300 bg-emerald-50/70 px-3 py-4 text-center font-bold text-emerald-950" dir={locale === 'ar' ? 'rtl' : 'auto'}>{subjectLabel(row.subject)}</th><td dir="auto" className="planner-value whitespace-pre-wrap border border-slate-300 bg-white px-3 py-3 text-start align-middle leading-6">{renderPlanValue(row.subjectId, 'classwork', row.classwork)}</td><td dir="auto" className="planner-value whitespace-pre-wrap border border-slate-300 bg-white px-3 py-3 text-start align-middle leading-6">{renderPlanValue(row.subjectId, 'homework', row.homework)}</td></tr>)}</tbody>
-            <tfoot>{plans.some((plan) => plan.dictation) && <tr><th className="border border-slate-300 bg-emerald-50/70 px-3 py-4 text-center font-bold text-emerald-950">{t('dictation')}</th><td colSpan={2} dir="auto" className="planner-value whitespace-pre-wrap border border-slate-300 bg-white px-4 py-4 text-start align-middle leading-7" style={readPlanStyle(plans.find((plan) => plan.dictationStyle)?.dictationStyle)}>{plans.map((plan) => plan.dictation).filter(Boolean).join('\n')}</td></tr>}<tr className="print:break-inside-avoid"><th className="border border-slate-300 bg-emerald-50/70 px-3 py-4 text-center font-bold text-emerald-950">{t('notes')}</th><td colSpan={2} dir="auto" className="planner-value whitespace-pre-wrap border border-slate-300 bg-white px-4 py-4 text-start align-middle leading-7">{renderNotesValue()}</td></tr></tfoot>
+            <tfoot>{plans.some((plan) => plan.dictation) && <tr><th className="border border-slate-300 bg-emerald-50/70 px-3 py-4 text-center font-bold text-emerald-950">{t('dictation')}</th><td colSpan={2} dir="auto" className="planner-bold-value planner-value whitespace-pre-wrap border border-slate-300 bg-white px-4 py-4 text-start align-middle leading-7" style={{ ...readPlanStyle(plans.find((plan) => plan.dictationStyle)?.dictationStyle), fontWeight: 900 }}>{plans.map((plan) => plan.dictation).filter(Boolean).join('\n')}</td></tr>}<tr className="print:break-inside-avoid"><th className="border border-slate-300 bg-emerald-50/70 px-3 py-4 text-center font-bold text-emerald-950">{t('notes')}</th><td colSpan={2} dir="auto" className="planner-value whitespace-pre-wrap border border-slate-300 bg-white px-4 py-4 text-start align-middle leading-7">{renderNotesValue()}</td></tr></tfoot>
           </table></div>}
       </section>
     </> : tab === 'assign' ? <AdminBulkAssignment grades={grades} /> : <>
