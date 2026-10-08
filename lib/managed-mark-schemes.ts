@@ -6,6 +6,14 @@ export function markSchemeScopeKey({ subjectId, gradeId, classId }: SchemeScope)
   return classId ? `${subjectId}:class:${classId}` : gradeId ? `${subjectId}:grade:${gradeId}` : `${subjectId}:global`;
 }
 
+export async function resolveClassGradeId(className: string, gradeId?: string | null) {
+  if (gradeId) return gradeId;
+  const leadingNumber = className.match(/^\s*(\d+)/)?.[1];
+  if (!leadingNumber) return null;
+  const grades = await prisma.grade.findMany({ select: { id: true, name: true } });
+  return grades.find((grade) => grade.name.match(/\d+/)?.[0] === leadingNumber)?.id ?? null;
+}
+
 function parseColumns(value: string | undefined, subjectName: string): MarkColumn[] {
   if (value) {
     try {

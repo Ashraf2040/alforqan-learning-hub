@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { emptyMarkValues, type MarkColumn } from '@/lib/student-marks';
-import { getEffectiveMarkScheme } from '@/lib/managed-mark-schemes';
+import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-schemes';
 import { getQuizColumns } from '@/lib/managed-quiz-marks';
 
 const VALID_SEMESTERS = ['1st Semester', '2nd Semester'];
@@ -31,18 +31,19 @@ export async function GET(request: NextRequest) {
     },
   });
   if (!schoolClass) return NextResponse.json({ error: 'Class not found.' }, { status: 404 });
+  const effectiveGradeId = await resolveClassGradeId(schoolClass.name, schoolClass.gradeId);
   const subjectMap = new Map<string, { id: string; name: string; columns: MarkColumn[] }>();
   const candidates = [...schoolClass.classSubjects.map(({ subject }) => subject), ...(schoolClass.grade?.subjects.map(({ subject }) => subject) ?? [])];
   const teacherSubjectIds = new Set([...teacher.subjects.map(({ id }) => id), ...teacher.subjectTeacherAssignments.map(({ subjectId: id }) => id)]);
   for (const subject of candidates) {
     if (session.user.role !== 'ADMIN' && !teacherSubjectIds.has(subject.id)) continue;
-    const [scheme, quizColumns] = await Promise.all([getEffectiveMarkScheme(subject.id, subject.name, schoolClass.gradeId, classId), getQuizColumns(subject.id)]);
+    const [scheme, quizColumns] = await Promise.all([getEffectiveMarkScheme(subject.id, subject.name, effectiveGradeId, classId), getQuizColumns(subject.id)]);
     subjectMap.set(subject.id, { id: subject.id, name: subject.name, columns: [...scheme.columns, ...quizColumns] });
   }
   if (!subjectMap.size) {
     const assigned = await prisma.subject.findMany({ where: { id: { in: [...teacherSubjectIds] } }, select: { id: true, name: true }, orderBy: { name: 'asc' } });
     for (const subject of assigned) {
-      const [scheme, quizColumns] = await Promise.all([getEffectiveMarkScheme(subject.id, subject.name, schoolClass.gradeId, classId), getQuizColumns(subject.id)]);
+      const [scheme, quizColumns] = await Promise.all([getEffectiveMarkScheme(subject.id, subject.name, effectiveGradeId, classId), getQuizColumns(subject.id)]);
       subjectMap.set(subject.id, { id: subject.id, name: subject.name, columns: [...scheme.columns, ...quizColumns] });
     }
   }

@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { getMarkSchemeAtScope, markSchemeScopeKey } from '@/lib/managed-mark-schemes';
+import { getMarkSchemeAtScope, markSchemeScopeKey, resolveClassGradeId } from '@/lib/managed-mark-schemes';
 import { fieldsForSubject, type MarkColumn } from '@/lib/student-marks';
 
 const canManage = (role: string) => role === 'ADMIN' || role === 'COORDINATOR';
@@ -12,10 +12,11 @@ async function validateScope(subjectId: string, gradeId: string, classId: string
   if (!subject) return { error: NextResponse.json({ error: 'Subject not found.' }, { status: 404 }) };
   let resolvedGradeId = gradeId || '';
   if (classId) {
-    const schoolClass = await prisma.class.findUnique({ where: { id: classId }, select: { id: true, gradeId: true } });
+    const schoolClass = await prisma.class.findUnique({ where: { id: classId }, select: { id: true, name: true, gradeId: true } });
     if (!schoolClass) return { error: NextResponse.json({ error: 'Class not found.' }, { status: 404 }) };
-    if (resolvedGradeId && schoolClass.gradeId && resolvedGradeId !== schoolClass.gradeId) return { error: NextResponse.json({ error: 'The class does not belong to the selected grade.' }, { status: 400 }) };
-    resolvedGradeId = schoolClass.gradeId ?? resolvedGradeId;
+    const classGradeId = await resolveClassGradeId(schoolClass.name, schoolClass.gradeId);
+    if (resolvedGradeId && classGradeId && resolvedGradeId !== classGradeId) return { error: NextResponse.json({ error: 'The class does not belong to the selected grade.' }, { status: 400 }) };
+    resolvedGradeId = classGradeId ?? resolvedGradeId;
   }
   if (resolvedGradeId && !(await prisma.grade.findUnique({ where: { id: resolvedGradeId }, select: { id: true } }))) return { error: NextResponse.json({ error: 'Grade not found.' }, { status: 404 }) };
   return { subject, gradeId: resolvedGradeId || null };

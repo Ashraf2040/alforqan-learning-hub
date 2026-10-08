@@ -11,5 +11,10 @@ export async function GET() {
     prisma.grade.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     prisma.class.findMany({ orderBy: [{ grade: { name: 'asc' } }, { name: 'asc' }], select: { id: true, name: true, gradeId: true } }),
   ]);
-  return NextResponse.json({ subjects, grades, classes });
+  const effectiveClasses = classes.map((schoolClass) => {
+    const number = schoolClass.name.match(/^\s*(\d+)/)?.[1];
+    const inferredGrade = number ? grades.find((grade) => grade.name.match(/\d+/)?.[0] === number) : undefined;
+    return { ...schoolClass, gradeId: schoolClass.gradeId ?? inferredGrade?.id ?? null };
+  });
+  return NextResponse.json({ subjects, grades, classes: effectiveClasses });
 }

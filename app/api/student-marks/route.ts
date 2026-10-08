@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { emptyMarkValues, MARK_FIELDS, type MarkColumn, type MarkField } from '@/lib/student-marks';
-import { getEffectiveMarkScheme } from '@/lib/managed-mark-schemes';
+import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-schemes';
 import { getQuizColumns, isQuizField } from '@/lib/managed-quiz-marks';
 
 const VALID_SEMESTERS = ['1st Semester', '2nd Semester'];
@@ -22,7 +22,8 @@ async function resolveAccess(role: string, sessionUserId: string, teacherId: str
     prisma.subject.findUnique({ where: { id: subjectId }, select: { id: true, name: true } }),
   ]);
   if (!schoolClass || !subject) return null;
-  return { teacher, schoolClass, subject };
+  const gradeId = await resolveClassGradeId(schoolClass.name, schoolClass.gradeId);
+  return { teacher, schoolClass: { ...schoolClass, gradeId }, subject };
 }
 
 export async function GET(request: NextRequest) {
