@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/client-weekly-v5"
+  output   = "../generated/client-weekly-v7"
 }
 
 datasource db {
@@ -28,8 +28,10 @@ model User {
 
   weeklyPlannerSubmissions WeeklyPlannerSubmission[]
   studentReports           StudentReport[]
-  schedulesCreated         Schedule[]       @relation("ScheduleCreator")
+  schedulesCreated         Schedule[]                @relation("ScheduleCreator")
   scheduleItems            ScheduleItem[]
+  managedMarksUpdates      ManagedStudentMark[]      @relation("ManagedMarksUpdater")
+  quizMarksUpdates         ManagedQuizMark[]         @relation("ManagedQuizMarksUpdater")
 }
 
 model AppSetting {
@@ -51,6 +53,9 @@ model Class {
   classTeacherAssignments  ClassTeacher[]
   classSubjects            ClassSubject[]
   schedules                Schedule[]
+  managedMarks             ManagedStudentMark[]
+  managedMarkSchemes       ManagedMarkScheme[]
+  quizMarks                ManagedQuizMark[]
 }
 
 model Subject {
@@ -68,6 +73,10 @@ model Subject {
   classSubjectAssignments   ClassSubject[]
   teacherSubjectAssignments SubjectTeacher[]
   marks                     Mark[]
+  managedMarks              ManagedStudentMark[]
+  managedMarkSchemes        ManagedMarkScheme[]
+  quizMarkSchemes           ManagedQuizScheme[]
+  quizMarks                 ManagedQuizMark[]
   scheduleItems             ScheduleItem[]
 }
 
@@ -120,40 +129,120 @@ model Mark {
   @@unique([studentId, subjectId, classTeacherId])
 }
 
-model Student {
-  id           String          @id @default(uuid())
-  name         String
+// Separate marks workspace data. It intentionally does not reuse the legacy Mark model.
+model ManagedStudentMark {
+  id              String   @id @default(uuid())
+  studentId       String
+  classId         String
+  subjectId       String
+  updatedById     String?
+  academicYear    String
+  term            String
+  participation   Int      @default(0)
+  behavior        Int      @default(0)
+  workingQuiz     Int      @default(0)
+  project         Int      @default(0)
+  finalExam       Int      @default(0)
+  classActivities Int      @default(0)
+  homework        Int      @default(0)
+  memorizing      Int      @default(0)
+  oralTest        Int      @default(0)
+  reading         Int      @default(0)
+  totalMarks      Int      @default(0)
+  extraMarks      String   @default("{}") @db.Text
+  updatedAt       DateTime @updatedAt
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  updatedBy       User?    @relation("ManagedMarksUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, classId, subjectId, academicYear, term])
+  @@index([classId, subjectId, academicYear, term])
+}
+
+model ManagedMarkScheme {
+  id        String   @id @default(uuid())
+  scopeKey  String   @unique
+  subjectId String
+  gradeId   String?
+  classId   String?
+  columns   String   @db.Text
+  updatedAt DateTime @updatedAt
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  grade     Grade?   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  class     Class?   @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@index([subjectId])
+  @@index([gradeId])
+  @@index([classId])
+}
+
+// Quiz scores have independent limits and storage; the semester marks sheet reads them as injected columns.
+model ManagedQuizScheme {
+  id        String   @id @default(uuid())
+  subjectId String   @unique
+  firstMax  Int      @default(10)
+  secondMax Int      @default(10)
+  updatedAt DateTime @updatedAt
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+}
+
+model ManagedQuizMark {
+  id           String   @id @default(uuid())
+  studentId    String
   classId      String
-  createdAt    DateTime        @default(now())
-  class        Class           @relation(fields: [classId], references: [id], onDelete: Cascade)
-  reports      StudentReport[]
-  marks        Mark[]
+  subjectId    String
+  updatedById  String?
+  academicYear String
+  term         String
+  firstQuiz    Int      @default(0)
+  secondQuiz   Int      @default(0)
+  updatedAt    DateTime @updatedAt
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class        Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  updatedBy    User?    @relation("ManagedQuizMarksUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, classId, subjectId, academicYear, term])
+  @@index([classId, subjectId, academicYear, term])
+}
+
+model Student {
+  id               String               @id @default(uuid())
+  name             String
+  classId          String
+  createdAt        DateTime             @default(now())
+  class            Class                @relation(fields: [classId], references: [id], onDelete: Cascade)
+  reports          StudentReport[]
+  marks            Mark[]
+  managedMarks     ManagedStudentMark[]
+  managedQuizMarks ManagedQuizMark[]
 
   @@index([classId, name])
 }
 
 model StudentReport {
-  id              String   @id @default(uuid())
-  studentId       String
-  teacherId       String
-  subjectId       String
-  academicYear    String
-  semester        String
-  reportType      String   @default("First Report")
-  status          String   @default("Not Started")
-  recommendations String[] @default([])
-  comment         String   @default("")
+  id                String   @id @default(uuid())
+  studentId         String
+  teacherId         String
+  subjectId         String
+  academicYear      String
+  semester          String
+  reportType        String   @default("First Report")
+  status            String   @default("Not Started")
+  recommendations   String[] @default([])
+  comment           String   @default("")
   ixlPracticeStatus String?
-  participation   Int?
-  behavior        Int?
-  quizScore       Int?
-  projectScore    Int?
-  finalExam       Int?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  teacher         User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  participation     Int?
+  behavior          Int?
+  quizScore         Int?
+  projectScore      Int?
+  finalExam         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  teacher           User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  subject           Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
 
   @@unique([studentId, teacherId, subjectId, academicYear, semester, reportType])
   @@index([teacherId, academicYear, semester])
@@ -216,13 +305,14 @@ model ScheduleItem {
 }
 
 model Grade {
-  id               String             @id @default(uuid())
-  name             String             @unique
-  classes          Class[]
-  subjects         GradeSubject[]
-  plans            WeeklyPlan[]
-  adminNotes       AdminPlannerNote[] @relation("AdminPlannerNoteGrades")
-  adminWeeklyPlans AdminWeeklyPlan[]
+  id                 String              @id @default(uuid())
+  name               String              @unique
+  classes            Class[]
+  subjects           GradeSubject[]
+  plans              WeeklyPlan[]
+  adminNotes         AdminPlannerNote[]  @relation("AdminPlannerNoteGrades")
+  adminWeeklyPlans   AdminWeeklyPlan[]
+  managedMarkSchemes ManagedMarkScheme[]
 }
 
 model GradeSubject {

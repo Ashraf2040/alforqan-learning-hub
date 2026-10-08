@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { toast } from 'react-hot-toast';
 
-type Sections = { weeklyPlans: boolean; todaysProgress: boolean; studentReports: boolean };
-const defaults: Sections = { weeklyPlans: true, todaysProgress: true, studentReports: true };
+type Sections = { weeklyPlans: boolean; todaysProgress: boolean; studentReports: boolean; studentMarks: boolean; quizMarks: boolean };
+const defaults: Sections = { weeklyPlans: true, todaysProgress: true, studentReports: true, studentMarks: true, quizMarks: true };
 
 export default function TeacherSectionsPage() {
   const locale = useLocale();
@@ -38,10 +38,14 @@ export default function TeacherSectionsPage() {
     finally { setSaving(false); }
   }
   const items: { key: keyof Sections; title: string; description: string }[] = rtl ? [
+    { key: 'studentMarks', title: 'درجات الطلاب', description: 'إظهار أو إخفاء إدارة درجات الطلاب للمعلمين.' },
+    { key: 'quizMarks', title: 'درجات الاختبارات القصيرة', description: 'إظهار أو إخفاء قسم درجات الاختبارين للمعلمين.' },
     { key: 'weeklyPlans', title: 'الخطط الأسبوعية', description: 'إظهار أو إخفاء قسم الخطط الأسبوعية للمعلمين.' },
     { key: 'todaysProgress', title: 'إنجاز اليوم', description: 'إظهار أو إخفاء قسم إنجاز اليوم للمعلمين.' },
     { key: 'studentReports', title: 'تقارير الطلاب', description: 'إظهار أو إخفاء تقارير الطلاب للمعلمين.' },
   ] : [
+    { key: 'studentMarks', title: 'Students Marks', description: 'Show or hide the student marks section for teachers.' },
+    { key: 'quizMarks', title: 'Quiz marks', description: 'Show or hide the two quiz marks section for teachers.' },
     { key: 'weeklyPlans', title: 'Weekly plans', description: 'Show or hide the weekly plans section for teachers.' },
     { key: 'todaysProgress', title: "Today's progress", description: "Show or hide the today's progress section for teachers." },
     { key: 'studentReports', title: 'Student reports', description: 'Show or hide student reports for teachers.' },

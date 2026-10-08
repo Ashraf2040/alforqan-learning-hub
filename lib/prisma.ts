@@ -1,7 +1,7 @@
-import { PrismaClient } from '@/generated/client-weekly-v5';
+import { PrismaClient } from '@/generated/client-weekly-v7';
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; prismaSchemaRevision?: string };
-const schemaRevision = 'student-reports-order-v3';
+const schemaRevision = 'flexible-managed-mark-schemes-v2';
 
 if (process.env.NODE_ENV !== 'production' && globalForPrisma.prismaSchemaRevision !== schemaRevision) {
   const staleClient = globalForPrisma.prisma;

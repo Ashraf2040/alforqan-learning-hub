@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-export const DEFAULT_SECTIONS = { weeklyPlans: true, todaysProgress: true, studentReports: true };
+const DEFAULT_SECTIONS = { weeklyPlans: true, todaysProgress: true, studentReports: true, studentMarks: true, quizMarks: true };
 const SETTINGS_KEY = 'teacherSections';
 
 async function readSections() {
