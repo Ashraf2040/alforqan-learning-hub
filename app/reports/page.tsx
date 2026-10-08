@@ -104,6 +104,12 @@ export default function ReportsPage() {
     finally { setLoading(false); }
   }
 
+  useEffect(() => {
+    if (classId && (isAdmin || subjectId) && academicYear.trim() && semester) void loadReports();
+  // Load the roster's report status as soon as the class and report filters are selected.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, subjectId, teacherId, semester, reportType, academicYear, isAdmin]);
+
   async function refreshReportSubjectOrder() {
     const response = await fetch('/api/students', { cache: 'no-store' });
     const data = await response.json();
