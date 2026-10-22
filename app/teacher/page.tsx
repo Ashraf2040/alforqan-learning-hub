@@ -2,7 +2,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 type SchoolClass = { id: string; name: string };
@@ -19,6 +19,7 @@ const segBtn = (active: boolean) => `rounded-md px-3.5 py-2 text-sm font-semibol
 
 export default function TeacherPage() {
   const t = useTranslations('teacher');
+  const rtl = useLocale() === 'ar';
   const { data: session, status } = useSession();
   const router = useRouter();
   const [classes, setClasses] = useState<SchoolClass[]>([]);
@@ -124,7 +125,7 @@ export default function TeacherPage() {
 
   if (status === 'loading') return <div className="grid min-h-[70vh] place-items-center text-sm font-medium text-slate-500"><span className="inline-flex items-center gap-3"><span aria-hidden className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-700" />{t('loading')}</span></div>;
   return <main className="w-full px-4 py-9 sm:px-7 xl:px-10">
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-white p-5 shadow-sm"><div><p className="text-xl font-bold tracking-tight text-slate-900">{t('welcome', { name: session?.user.name || t('there') })}</p><p className="mt-1 text-sm text-slate-600">{t('welcomeHint')}</p></div><Link href="/reports" className="btn-primary no-underline">Student reports</Link></div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-white p-5 shadow-sm"><div><p className="text-xl font-bold tracking-tight text-slate-900">{t('welcome', { name: session?.user.name || t('there') })}</p><p className="mt-1 text-sm text-slate-600">{t('welcomeHint')}</p></div><Link href="/reports" className="btn-primary no-underline">{rtl ? 'تقارير الطلاب' : 'Student reports'}</Link></div>
     <header className="card mb-8 !rounded-3xl px-5 py-6 shadow-[0_20px_60px_-45px_rgba(34,40,49,.38)] sm:px-8 sm:py-7"><p className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100 before:h-1.5 before:w-1.5 before:rounded-full before:bg-emerald-600 before:content-['']">{t('eyebrow')}</p><h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{t('title')}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{t('intro')}</p></header>
 
     <section className="card mb-7 p-5 sm:p-7"><div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className={sectionTitle}>{t('previousPlans')}</h2><p className={sectionHint}>{t('previousPlansHint')}</p></div><div className="flex gap-2"><button type="button" aria-expanded={showPlanFilters} onClick={() => setShowPlanFilters((value) => !value)} className="btn-secondary !px-3.5 !py-2">{showPlanFilters ? t('hideFilters') : t('filterPlans')}</button><button type="button" disabled={!appliedPlanFilter} onClick={() => appliedPlanFilter && void loadPreviousPlans(appliedPlanFilter)} className="btn-secondary !px-3.5 !py-2">{t('refreshPlans')}</button></div></div>
