@@ -1,0 +1,58 @@
+
+name: Deploy Alforqan Hub
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alforqan-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Contabo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CONTABO_SSH_KEY }}
+          SSH_HOST: ${{ secrets.CONTABO_HOST }}
+          SSH_FINGERPRINT: ${{ secrets.CONTABO_HOST_FINGERPRINT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh-keyscan -t ed25519 "$SSH_HOST" > /tmp/contabo_host_key
+          ACTUAL_FINGERPRINT="$(ssh-keygen -lf /tmp/contabo_host_key | awk '{print $2}')"
+
+          if [ "$ACTUAL_FINGERPRINT" != "$SSH_FINGERPRINT" ]; then
+            echo "ERROR: Contabo host fingerprint mismatch."
+            exit 1
+          fi
+
+          cp /tmp/contabo_host_key ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Test SSH and deploy Alforqan Hub
+        env:
+          SSH_HOST: ${{ secrets.CONTABO_HOST }}
+          SSH_USER: ${{ secrets.CONTABO_USER }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            "$SSH_USER@$SSH_HOST" \
+            'sudo -n /usr/local/sbin/deploy-alforqan-hub'
