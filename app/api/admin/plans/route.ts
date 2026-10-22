@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     const raw = value as Record<string, unknown>;
     const fontSizes = new Set(['12px', '14px', '16px', '18px', '22px', '26px']);
     const fontSize = typeof raw.fontSize === 'string' && fontSizes.has(raw.fontSize) ? raw.fontSize : '14px';
-    const color = typeof raw.color === 'string' && /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : '#0f172a';
+    const color = typeof raw.color === 'string' && /^#[0-9a-f]{6}$/i.test(raw.color) ? raw.color : '#222831';
     const fontWeight = raw.fontWeight === '700' ? '700' : '400';
     const fontStyle = raw.fontStyle === 'italic' ? 'italic' : 'normal';
     const textDecoration = raw.textDecoration === 'underline' ? 'underline' : 'none';

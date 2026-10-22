@@ -1,9 +1,9 @@
-require('dotenv/config');
-const { PrismaClient } = require('../generated/client-weekly-v2');
+﻿require('dotenv/config');
+const { PrismaClient } = require('../generated/client-weekly-v7');
 const { subjects, classNames, teachersData } = require('./seed-data.json');
 const prisma = new PrismaClient();
 const adminPassword = 'admin123';
-const teacherPassword = 'P@55word';
+const teacherPassword = 'P@55words';
 
 async function getOrCreateByName(model, name) {
   const found = await model.findFirst({ where: { name } });
@@ -52,7 +52,7 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
-    update: { name: 'Admin User', password: adminPassword, role: 'ADMIN' },
+    update: { name: 'Admin User', role: 'ADMIN' },
     create: { username: 'admin', name: 'Admin User', password: adminPassword, role: 'ADMIN' },
   });
 
@@ -106,7 +106,7 @@ async function main() {
           classes: { connect: sampleClassIds.map((id) => ({ id })) },
           items: { create: [{
             subjectId: sampleSubjectId,
-            classwork: 'Mathematical modeling and fluency practice, pages 45–47.',
+            classwork: 'Mathematical modeling and fluency practice, pages 45â€“47.',
             homework: 'Complete the assigned practice pages and review the lesson.',
           }] },
         },
@@ -123,3 +123,4 @@ async function main() {
 main()
   .catch((error) => { console.error('Seed failed:', error); process.exitCode = 1; })
   .finally(async () => { await prisma.$disconnect(); });
+

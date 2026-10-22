@@ -4,9 +4,10 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { emptyMarkValues, MARK_FIELDS, type MarkColumn, type MarkField } from '@/lib/student-marks';
 import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-schemes';
-import { getQuizColumns, isQuizField } from '@/lib/managed-quiz-marks';
+import { calculateQuizAverage, getQuizLimits, injectQuizAverage, isQuizField, withQuizAverageColumn } from '@/lib/managed-quiz-marks';
+import { isSemester } from '@/lib/academic-periods';
+import { canTeacherEditMarks } from '@/lib/mark-submission-policy';
 
-const VALID_SEMESTERS = ['1st Semester', '2nd Semester'];
 
 async function resolveAccess(role: string, sessionUserId: string, teacherId: string, classId: string, subjectId: string) {
   const teacher = await prisma.user.findFirst({
@@ -35,17 +36,17 @@ export async function GET(request: NextRequest) {
   const subjectId = query.get('subjectId') ?? '';
   const academicYear = query.get('academicYear')?.trim() ?? '';
   const semester = query.get('semester') ?? '';
-  if (!teacherId || !classId || !subjectId || !academicYear || !VALID_SEMESTERS.includes(semester)) return NextResponse.json({ error: 'Choose the teacher, class, subject, academic year, and semester.' }, { status: 400 });
+  if (!teacherId || !classId || !subjectId || !academicYear || !isSemester(semester)) return NextResponse.json({ error: 'Choose the teacher, class, subject, academic year, and semester.' }, { status: 400 });
   const access = await resolveAccess(session.user.role, session.user.id, teacherId, classId, subjectId);
   if (!access) return NextResponse.json({ error: 'Choose a class and subject assigned to this teacher.' }, { status: 403 });
-  const [records, quizRecords, students, scheme, quizColumns] = await Promise.all([
+  const [records, quizRecords, students, scheme, quizLimits] = await Promise.all([
     prisma.managedStudentMark.findMany({ where: { classId, subjectId, academicYear, term: semester } }),
     prisma.managedQuizMark.findMany({ where: { classId, subjectId, academicYear, term: semester } }),
     Promise.resolve(access.schoolClass.students),
     getEffectiveMarkScheme(subjectId, access.subject.name, access.schoolClass.gradeId, classId),
-    getQuizColumns(subjectId),
+    getQuizLimits(subjectId),
   ]);
-  const columns = [...scheme.columns, ...quizColumns];
+  const columns = withQuizAverageColumn(scheme.columns, access.subject.name);
   const byStudent = new Map(records.map((record) => [record.studentId, record]));
   const quizByStudent = new Map(quizRecords.map((record) => [record.studentId, record]));
   return NextResponse.json({
@@ -56,9 +57,10 @@ export async function GET(request: NextRequest) {
     students: students.map((student) => {
       const record = byStudent.get(student.id);
       const quiz = quizByStudent.get(student.id);
-      let extra: Record<string, number> = {};
-      try { extra = record ? JSON.parse(record.extraMarks) as Record<string, number> : {}; } catch { extra = {}; }
-      return { id: student.id, name: student.name, mark: { ...emptyMarkValues(), ...(record ?? {}), ...extra, quiz1: quiz?.firstQuiz ?? 0, quiz2: quiz?.secondQuiz ?? 0, totalMarks: record?.totalMarks ?? 0 } };
+      let extra: Record<string, unknown> = {};
+      try { extra = record ? JSON.parse(record.extraMarks) as Record<string, unknown> : {}; } catch { extra = {}; }
+      const mark = injectQuizAverage({ ...emptyMarkValues(), ...(record ?? {}), ...extra, totalMarks: record?.totalMarks ?? 0 }, columns, quizLimits, quiz?.firstQuiz ?? 0, quiz?.secondQuiz ?? 0);
+      return { id: student.id, name: student.name, finalExamAbsent: extra.__finalExamAbsent === true, mark };
     }),
   });
 }
@@ -73,38 +75,44 @@ export async function PUT(request: NextRequest) {
     const subjectId = String(body.subjectId ?? '');
     const academicYear = String(body.academicYear ?? '').trim();
     const semester = String(body.semester ?? '');
-    if (!teacherId || !classId || !subjectId || !academicYear || !VALID_SEMESTERS.includes(semester) || !Array.isArray(body.students)) return NextResponse.json({ error: 'Choose all filters and include student marks.' }, { status: 400 });
+    if (!teacherId || !classId || !subjectId || !academicYear || !isSemester(semester) || !Array.isArray(body.students)) return NextResponse.json({ error: 'Choose all filters and include student marks.' }, { status: 400 });
     const access = await resolveAccess(session.user.role, session.user.id, teacherId, classId, subjectId);
     if (!access) return NextResponse.json({ error: 'Choose a class and subject assigned to this teacher.' }, { status: 403 });
+    if (session.user.role === 'TEACHER' && !(await canTeacherEditMarks(session.user.id)).canEdit) return NextResponse.json({ error: 'The mark entry deadline has passed. You can view marks but cannot edit them.' }, { status: 403 });
     const scheme = await getEffectiveMarkScheme(subjectId, access.subject.name, access.schoolClass.gradeId, classId);
-    const columns = [...scheme.columns, ...await getQuizColumns(subjectId)];
+    const columns = withQuizAverageColumn(scheme.columns, access.subject.name);
     const studentIds = new Set(access.schoolClass.students.map(({ id }) => id));
     const columnByField = new Map(columns.map((column) => [column.field, column]));
     const items = body.students as unknown[];
     const submittedStudentIds = items.map((item) => item && typeof item === 'object' ? String((item as { studentId?: unknown }).studentId ?? '') : '');
     if (items.length !== studentIds.size || new Set(submittedStudentIds).size !== studentIds.size || submittedStudentIds.some((id) => !studentIds.has(id))) return NextResponse.json({ error: 'Student list changed. Reload the class before saving.' }, { status: 409 });
     const writes = items.map((item) => {
-      const raw = item as { studentId: string; values?: Record<string, unknown> };
+      const raw = item as { studentId: string; values?: Record<string, unknown>; finalExamAbsent?: unknown };
       const values = emptyMarkValues();
-      const extraValues: Record<string, number> = {};
+      const extraValues: Record<string, number | boolean> = {};
       for (const field of MARK_FIELDS) {
         const column = columnByField.get(field);
         if (!column) { values[field] = 0; continue; }
-        values[field] = validateValue(raw.values?.[field], column);
+        values[field] = column.readOnly ? 0 : validateValue(raw.values?.[field], column);
       }
       for (const column of columns) {
         if ((MARK_FIELDS as readonly string[]).includes(column.field)) continue;
         if (isQuizField(column.field)) continue;
+        if (column.readOnly) continue;
         extraValues[column.field] = validateValue(raw.values?.[column.field], column);
       }
+      if (typeof raw.finalExamAbsent === 'boolean') extraValues.__finalExamAbsent = raw.finalExamAbsent;
       return { studentId: raw.studentId, values, extraValues, totalMarks: 0 };
     });
-    const quizRecords = await prisma.managedQuizMark.findMany({ where: { studentId: { in: submittedStudentIds }, classId, subjectId, academicYear, term: semester } });
+    const [quizRecords, quizLimits] = await Promise.all([
+      prisma.managedQuizMark.findMany({ where: { studentId: { in: submittedStudentIds }, classId, subjectId, academicYear, term: semester } }),
+      getQuizLimits(subjectId),
+    ]);
     const quizByStudent = new Map(quizRecords.map((record) => [record.studentId, record]));
     for (const write of writes) {
-      write.totalMarks = columns.reduce((total, column) => total + (isQuizField(column.field)
-        ? (column.field === 'quiz1' ? quizByStudent.get(write.studentId)?.firstQuiz : quizByStudent.get(write.studentId)?.secondQuiz) ?? 0
-        : ((MARK_FIELDS as readonly string[]).includes(column.field) ? write.values[column.field as MarkField] : write.extraValues[column.field] ?? 0)), 0);
+      write.totalMarks = columns.reduce((total, column) => total + (column.quizAverage
+        ? calculateQuizAverage(quizByStudent.get(write.studentId)?.firstQuiz ?? 0, quizByStudent.get(write.studentId)?.secondQuiz ?? 0, quizLimits, column.max)
+        : ((MARK_FIELDS as readonly string[]).includes(column.field) ? write.values[column.field as MarkField] : Number(write.extraValues[column.field] ?? 0))), 0);
     }
     await prisma.$transaction(writes.map(({ studentId, values, extraValues, totalMarks }) => prisma.managedStudentMark.upsert({
       where: { studentId_classId_subjectId_academicYear_term: { studentId, classId, subjectId, academicYear, term: semester } },
@@ -119,7 +127,8 @@ export async function PUT(request: NextRequest) {
 }
 
 function validateValue(value: unknown, column: MarkColumn) {
-  const score = value ?? 0;
-  if (typeof score !== 'number' || !Number.isInteger(score) || score < 0 || score > column.max) throw new Error(`Invalid ${column.label} mark. Maximum is ${column.max}.`);
+  if (value === null || value === undefined || value === '') return 0;
+  const score = value;
+  if (typeof score !== 'number' || !Number.isInteger(score) || score < 1 || score > column.max) throw new Error(`Invalid ${column.label} mark. Enter a mark from 1 to ${column.max}, or leave it blank.`);
   return score;
 }

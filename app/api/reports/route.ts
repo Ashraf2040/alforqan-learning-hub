@@ -56,10 +56,10 @@ export async function POST(request: NextRequest) {
     const score = (value: unknown) => {
       if (value === '' || value == null) return null;
       const parsed = Number(value);
-      return Number.isInteger(parsed) && parsed >= 0 && parsed <= 100 ? parsed : Number.NaN;
+      return Number.isInteger(parsed) && parsed >= 1 && parsed <= 100 ? parsed : Number.NaN;
     };
     const quizScore = score(body.quizScore), projectScore = score(body.projectScore);
-    if (Number.isNaN(quizScore) || Number.isNaN(projectScore)) return NextResponse.json({ error: 'Quiz and project marks must be whole numbers from 0 to 100.' }, { status: 400 });
+    if (Number.isNaN(quizScore) || Number.isNaN(projectScore)) return NextResponse.json({ error: 'Quiz and project marks must be whole numbers from 1 to 100, or left blank.' }, { status: 400 });
     const signature = body.signature === undefined ? undefined : String(body.signature ?? '');
     if (signature !== undefined && signature && (signature.length > 200_000 || !/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(signature))) return NextResponse.json({ error: 'The signature image is invalid or too large.' }, { status: 400 });
     if (signature !== undefined) await prisma.user.update({ where: { id: teacherId }, data: { signature: signature || null } });

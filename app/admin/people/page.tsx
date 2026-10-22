@@ -13,7 +13,7 @@ type Payload = { teachers: (Option & { username: string; email: string | null; a
 type ManagedStudent = { id: string; name: string; classId: string; class: Option & { grade: Option | null } };
 const field = 'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm';
 const label = 'block text-sm font-semibold text-slate-700';
-const action = 'inline-flex items-center justify-center rounded-xl bg-[#123b36] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#17635a] disabled:cursor-not-allowed disabled:opacity-50';
+const action = 'inline-flex items-center justify-center rounded-xl bg-[#222831] px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-[#222831] disabled:cursor-not-allowed disabled:opacity-50';
 const card = 'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm';
 
 export default function PeoplePage() {
@@ -124,7 +124,7 @@ export default function PeoplePage() {
   const visibleStudents = useMemo(() => students.filter((item) => item.name.toLocaleLowerCase().includes(studentQuery.trim().toLocaleLowerCase()) && (!studentClassFilter || item.classId === studentClassFilter)), [students, studentQuery, studentClassFilter]);
 
   return <main className="w-full px-4 py-7 sm:px-7 xl:px-10">
-    <header className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0d302c] via-[#164e46] to-[#23796d] p-6 text-white shadow-lg sm:p-8">
+    <header className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#222831] via-[#222831] to-[#222831] p-6 text-white shadow-lg sm:p-8">
       <a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-100 hover:text-white">← Admin dashboard</a>
       <div className="mt-5 flex flex-wrap items-end justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">School administration</p><h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">People &amp; access</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-50/85">Set up teacher access, place students in classes, and keep the school roster current.</p></div><nav aria-label="Page sections" className="flex flex-wrap gap-2 text-sm">{[['#create-teacher', 'Teachers'], ['#create-student', 'Students'], ['#csv-imports', 'CSV imports'], ['#student-roster', 'Roster']].map(([href, text]) => <a key={href} href={href} className="rounded-full border border-white/20 bg-white/10 px-3.5 py-2 font-semibold text-white backdrop-blur hover:bg-white/20">{text}</a>)}</nav></div>
       <div className="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4">{[['Teachers', data.teachers.length], ['Students', students.length], ['Classes', data.classes.length], ['Subjects', data.subjects.length]].map(([title, count]) => <div key={String(title)} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur"><p className="text-xs font-semibold text-emerald-100">{title}</p><p className="mt-1 text-2xl font-black">{count}</p></div>)}</div>

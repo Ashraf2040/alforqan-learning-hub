@@ -4,11 +4,9 @@ import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import { useLocale, useTranslations } from 'next-intl';
 
-const navLink = (active: boolean) =>
-  `relative rounded-xl px-3.5 py-2 text-sm font-semibold no-underline transition-all ${active ? 'bg-[#e9f3f1] text-[#123b36] shadow-sm ring-1 ring-[#d7e8e4]' : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-950'}`;
-
 export function Navbar() {
   const locale = useLocale();
+  const rtl = locale === 'ar';
   const t = useTranslations('nav');
   const { data: session } = useSession();
   const pathname = usePathname();
@@ -17,29 +15,16 @@ export function Navbar() {
     document.cookie = `NEXT_LOCALE=${next}; path=/; max-age=31536000; samesite=lax`;
     window.location.reload();
   }
-  const initial = (session?.user?.name ?? '').trim().charAt(0).toUpperCase();
-  return <header className="no-print sticky top-0 z-40 border-b border-slate-200/70 bg-white/90 shadow-[0_8px_30px_-28px_rgba(15,45,40,.55)] backdrop-blur-xl supports-[backdrop-filter]:bg-white/82">
-    <div aria-hidden className="h-[3px] bg-gradient-to-r from-[#123b36] via-[#287b78] to-[#d2a64d]" />
-    <nav aria-label="Main navigation" className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-7 xl:px-10">
-      <Link href="/" className="group flex min-w-0 items-center gap-3 no-underline">
-        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-[#287b78] to-[#123b36] text-[13px] font-extrabold tracking-wide text-white shadow-md shadow-teal-950/20 ring-1 ring-white/20 transition-transform group-hover:scale-105">AF</span>
-        <span className="min-w-0 leading-tight"><span className="block truncate text-[15px] font-bold text-[#123b36]">{t('brand')}</span><span className="mt-0.5 hidden truncate text-xs font-medium text-slate-500 sm:block">Al Forqan Schools</span></span>
-      </Link>
-      <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        {session?.user?.role === 'ADMIN' && <Link href="/admin" aria-current={pathname?.startsWith('/admin') ? 'page' : undefined} className={navLink(Boolean(pathname?.startsWith('/admin')))}>{t('admin')}</Link>}
-        {session?.user?.role === 'TEACHER' && <Link href="/teacher" aria-current={pathname?.startsWith('/teacher') ? 'page' : undefined} className={navLink(Boolean(pathname?.startsWith('/teacher')))}>{t('teacher')}</Link>}
-        <span aria-hidden className="mx-1 hidden h-6 w-px bg-slate-200 sm:block" />
-        <button type="button" onClick={toggleLocale} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-emerald-700/40 hover:bg-emerald-50 hover:text-emerald-900">
-          <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3Z" /></svg>
-          {t('language')}
+  const initial = (session?.user?.name ?? '').trim().charAt(0).toUpperCase() || 'A';
+  const pageTitle = pathname?.startsWith('/admin') ? (rtl ? 'الإدارة' : 'Administration') : pathname?.startsWith('/teacher') ? (rtl ? 'مساحة المعلم' : 'Teacher workspace') : pathname?.startsWith('/reports') ? (rtl ? 'تقارير الطلاب' : 'Student reports') : t('brand');
+  return <header className="no-print sticky top-0 z-40 border-b border-slate-700 bg-slate-900 text-white">
+    <nav aria-label={rtl ? 'التنقل الرئيسي' : 'Main navigation'} className="flex min-h-16 w-full items-center justify-between gap-3 px-4 sm:px-6">
+      <div className="flex min-w-0 items-center gap-3"><Link href="/" aria-label={t('brand')} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-blue-600 text-xs font-extrabold tracking-wide text-white no-underline">AF</Link><span className="truncate text-sm font-semibold text-white">{pageTitle}</span></div>
+      <div className="flex shrink-0 items-center gap-2">
+        <button type="button" onClick={toggleLocale} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-600 px-3 text-sm font-medium text-slate-100 hover:bg-slate-800" aria-label={rtl ? 'Switch language' : 'تغيير اللغة'}>
+          <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 3.7 12 3Z"/></svg>{t('language')}
         </button>
-        {session && <>
-          {initial && <span aria-hidden title={session.user?.name ?? undefined} className="hidden h-9 w-9 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-900 ring-2 ring-white sm:grid">{initial}</span>}
-          <button type="button" onClick={() => signOut({ callbackUrl: '/login' })} aria-label={t('signOut')} className="inline-flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm font-semibold text-slate-500 hover:bg-rose-50 hover:text-rose-700 sm:px-3">
-            <svg aria-hidden viewBox="0 0 24 24" className="h-4 w-4 rtl:-scale-x-100" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4" /></svg>
-            <span className="hidden sm:inline">{t('signOut')}</span>
-          </button>
-        </>}
+        {session && <details className="relative"><summary aria-label={rtl ? 'قائمة المستخدم' : 'User menu'} className="grid h-10 w-10 cursor-pointer list-none place-items-center rounded-full bg-white text-sm font-bold text-slate-900 ring-2 ring-slate-600 focus-visible:outline-blue-300">{initial}</summary><div className="absolute end-0 top-12 z-50 w-64 rounded-xl border border-slate-200 bg-white p-2 text-slate-900 shadow-xl" dir={rtl ? 'rtl' : 'ltr'}><div className="border-b border-slate-100 px-3 py-2"><p className="truncate text-sm font-semibold">{session.user?.name}</p><p className="mt-1 text-xs text-slate-500">{session.user?.role}</p></div>{session.user?.role === 'ADMIN' && <Link href="/admin" className="mt-1 block min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 no-underline hover:bg-slate-50">{t('admin')}</Link>}{session.user?.role === 'TEACHER' && <Link href="/teacher" className="mt-1 block min-h-10 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 no-underline hover:bg-slate-50">{t('teacher')}</Link>}<button type="button" onClick={() => signOut({ callbackUrl: '/login' })} className="min-h-10 w-full rounded-lg px-3 py-2.5 text-start text-sm font-semibold text-red-700 hover:bg-red-50">{t('signOut')}</button></div></details>}
       </div>
     </nav>
   </header>;

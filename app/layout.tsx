@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'sw
 const plexArabic = IBM_Plex_Sans_Arabic({ subsets: ['arabic'], weight: ['400', '500', '600', '700'], variable: '--font-arabic', display: 'swap' });
 
 export const metadata: Metadata = { title: 'Forqan School Hub | Al Forqan Schools', description: 'Weekly planning, daily lesson progress, and student reports in one school workspace.' };
-export const viewport: Viewport = { themeColor: '#123b36', width: 'device-width', initialScale: 1 };
+export const viewport: Viewport = { themeColor: '#222831', width: 'device-width', initialScale: 1 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const locale = await getLocale();

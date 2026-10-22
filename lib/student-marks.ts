@@ -1,7 +1,7 @@
 export const MARK_FIELDS = ['participation', 'behavior', 'workingQuiz', 'project', 'finalExam', 'classActivities', 'homework', 'memorizing', 'oralTest', 'reading'] as const;
 export type MarkField = typeof MARK_FIELDS[number];
 export type MarkValues = Record<MarkField, number>;
-export type MarkColumn = { field: string; label: string; labelAr: string; min: number; max: number };
+export type MarkColumn = { field: string; label: string; labelAr: string; min: number; max: number; readOnly?: boolean; quizAverage?: boolean };
 
 export function maximaForSubject(subjectName: string): Partial<Record<MarkField, number>> {
   const subject = subjectName.trim().toLocaleLowerCase();
