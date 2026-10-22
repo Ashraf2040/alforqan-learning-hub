@@ -77,7 +77,7 @@ export default function ReportSubjectOrder({ onOrderSaved }: { onOrderSaved: () 
 
   return <div className="mb-6 print:hidden" dir={ar ? 'rtl' : 'ltr'}>
     <button type="button" onClick={() => setOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 shadow-sm hover:border-emerald-700/40 hover:bg-emerald-50 hover:text-emerald-900"><span aria-hidden className="grid h-6 w-6 place-items-center rounded-lg bg-emerald-50 text-emerald-900">↕</span>{ar ? 'ترتيب مواد التقرير حسب الصف' : 'Set subject order by grade'}</button>
-    {open && <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/55 p-3 backdrop-blur-sm sm:p-6" onClick={() => { if (!saving) setOpen(false); }}>
+    {open && <div className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-slate-950/55 p-3 pt-4 backdrop-blur-sm sm:p-6 sm:pt-6" onClick={() => { if (!saving) setOpen(false); }}>
     <section role="dialog" aria-modal="true" aria-labelledby="report-subject-order-title" onClick={(event) => event.stopPropagation()} className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-7">
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-[min(100%,16rem)] flex-1">
