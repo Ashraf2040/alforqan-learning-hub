@@ -129,6 +129,7 @@ type ManagementData = { teachers: ManagementTeacher[]; classes: SchoolClass[]; s
 
 function AdminAcademicTools({ view, data, onRefresh }: { view: 'teacher-details' | 'teacher-cards' | 'classes' | 'subjects'; data: ManagementData; onRefresh: () => void }) {
   const t = useTranslations('dailyProgress');
+  const locale = useLocale();
   const [name, setName] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
   const [editingTeacher, setEditingTeacher] = useState<EditableTeacher | null>(null);
   const type = view === 'classes' ? 'class' : 'subject';
