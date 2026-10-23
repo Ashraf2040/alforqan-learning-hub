@@ -3,10 +3,11 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 export async function PATCH(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'people'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
   try {
     const { id } = await context.params;

@@ -6,16 +6,17 @@ import { calculateQuizAverage, getQuizLimits, withQuizAverageColumn } from '@/li
 import { resolveQuizAccess, teacherQuizSectionEnabled } from '@/lib/quiz-access';
 import { isSemester } from '@/lib/academic-periods';
 import { canTeacherEditMarks } from '@/lib/mark-submission-policy';
+import { hasAdminFeature } from '@/lib/custom-admin';
 import { emptyMarkValues, MARK_FIELDS } from '@/lib/student-marks';
 import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-schemes';
 
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'quizMarks')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   if (session.user.role === 'TEACHER' && !(await teacherQuizSectionEnabled())) return NextResponse.json({ error: 'Quiz marks are currently disabled for teachers.' }, { status: 403 });
   const query = request.nextUrl.searchParams;
-  const teacherId = session.user.role === 'ADMIN' ? (query.get('teacherId') ?? '') : session.user.id;
+  const teacherId = session.user.role === 'ADMIN' || session.user.role === 'CUSTOM_ADMIN' ? (query.get('teacherId') ?? '') : session.user.id;
   const classId = query.get('classId') ?? '';
   const subjectId = query.get('subjectId') ?? '';
   const academicYear = query.get('academicYear')?.trim() ?? '';
@@ -34,11 +35,11 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'quizMarks')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   if (session.user.role === 'TEACHER' && !(await teacherQuizSectionEnabled())) return NextResponse.json({ error: 'Quiz marks are currently disabled for teachers.' }, { status: 403 });
   try {
     const body = await request.json();
-    const teacherId = session.user.role === 'ADMIN' ? String(body.teacherId ?? '') : session.user.id;
+    const teacherId = session.user.role === 'ADMIN' || session.user.role === 'CUSTOM_ADMIN' ? String(body.teacherId ?? '') : session.user.id;
     const classId = String(body.classId ?? ''), subjectId = String(body.subjectId ?? ''), academicYear = String(body.academicYear ?? '').trim(), semester = String(body.semester ?? '');
     if (!teacherId || !classId || !subjectId || !academicYear || !isSemester(semester) || !Array.isArray(body.students)) return NextResponse.json({ error: 'Choose the class, subject, year, and semester.' }, { status: 400 });
     const access = await resolveQuizAccess(session.user.role, session.user.id, teacherId, classId, subjectId);

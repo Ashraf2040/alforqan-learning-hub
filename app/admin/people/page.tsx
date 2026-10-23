@@ -7,6 +7,7 @@ import { useLocale } from 'next-intl';
 import { toast } from 'react-hot-toast';
 import CsvImportPanel from './CsvImportPanel';
 import TeacherAssignmentEditor, { type EditableTeacher } from './TeacherAssignmentEditor';
+import { useAdminFeature } from '@/app/admin/useAdminFeature';
 
 type Option = { id: string; name: string };
 type ClassChoice = Option & { grade: Option | null };
@@ -18,6 +19,7 @@ const action = 'inline-flex items-center justify-center rounded-xl bg-[#222831] 
 const card = 'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm';
 
 export default function PeoplePage() {
+  useAdminFeature('people');
   const rtl = useLocale() === 'ar';
   const tr = (en: string, ar: string) => rtl ? ar : en;
   const { data: session, status } = useSession();
@@ -47,8 +49,8 @@ export default function PeoplePage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
-    if (status === 'authenticated' && session?.user.role !== 'ADMIN') router.replace('/teacher');
-    if (status === 'authenticated' && session?.user.role === 'ADMIN') {
+    if (status === 'authenticated' && !['ADMIN', 'CUSTOM_ADMIN'].includes(session?.user.role ?? '')) router.replace('/teacher');
+    if (status === 'authenticated' && ['ADMIN', 'CUSTOM_ADMIN'].includes(session?.user.role ?? '')) {
       void Promise.all([load(), loadStudents()]).catch(() => toast.error(tr('Could not load school data.', 'تعذر تحميل بيانات المدرسة.')));
     }
   }, [status, session, router]);

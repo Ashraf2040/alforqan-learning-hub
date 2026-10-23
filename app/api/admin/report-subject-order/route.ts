@@ -2,10 +2,11 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 async function adminOnly() {
   const session = await getServerSession(authOptions);
-  return session?.user?.role === 'ADMIN';
+  return Boolean(session?.user && await hasAdminFeature(session.user, 'studentReports'));
 }
 
 export async function GET() {

@@ -6,13 +6,15 @@ import { emptyMarkValues, type MarkColumn } from '@/lib/student-marks';
 import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-schemes';
 import { getQuizLimits, injectQuizAverage, withQuizAverageColumn } from '@/lib/managed-quiz-marks';
 import { isSemester } from '@/lib/academic-periods';
+import { hasAnyAdminFeature } from '@/lib/custom-admin';
 
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAnyAdminFeature(session.user, ['studentMarks', 'certificates'])))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const adminAccess = session.user.role === 'ADMIN' || session.user.role === 'CUSTOM_ADMIN';
   const query = request.nextUrl.searchParams;
-  const teacherId = session.user.role === 'ADMIN' ? (query.get('teacherId') ?? '') : session.user.id;
+  const teacherId = adminAccess ? (query.get('teacherId') ?? '') : session.user.id;
   const classId = query.get('classId') ?? '';
   const academicYear = query.get('academicYear')?.trim() ?? '';
   const semester = query.get('semester') ?? '';
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
   const teacher = teacherId ? await prisma.user.findFirst({ where: { id: teacherId, role: 'TEACHER' }, include: { classes: { select: { id: true } }, classTeacherAssignments: { select: { classId: true } }, subjects: { select: { id: true } }, subjectTeacherAssignments: { select: { subjectId: true } } } }) : null;
   const assignedClasses = new Set([...(teacher?.classes ?? []).map(({ id }) => id), ...(teacher?.classTeacherAssignments ?? []).map(({ classId: id }) => id)]);
   if (session.user.role === 'TEACHER' && (!teacher || teacher.id !== session.user.id || !assignedClasses.has(classId))) return NextResponse.json({ error: 'Class is not assigned to this teacher.' }, { status: 403 });
-  if (session.user.role === 'ADMIN' && teacherId && (!teacher || !assignedClasses.has(classId))) return NextResponse.json({ error: 'Class is not assigned to this teacher.' }, { status: 403 });
+  if (adminAccess && teacherId && (!teacher || !assignedClasses.has(classId))) return NextResponse.json({ error: 'Class is not assigned to this teacher.' }, { status: 403 });
   const subjectSelect = { id: true, name: true } as const;
   const schoolClass = await prisma.class.findUnique({
     where: { id: classId },
@@ -49,8 +51,8 @@ export async function GET(request: NextRequest) {
     ...(schoolClass.grade?.subjects.map(({ subject }) => subject) ?? []),
     ...inferredGradeSubjects.map(({ subject }) => subject),
   ]);
-  const curriculumFallback = session.user.role === 'ADMIN' && !teacherId && candidates.length === 0;
-  if (session.user.role === 'ADMIN' && !teacherId && candidates.length === 0) {
+  const curriculumFallback = adminAccess && !teacherId && candidates.length === 0;
+  if (adminAccess && !teacherId && candidates.length === 0) {
     const classTeacherSubjects = schoolClass.teachers.flatMap((item) => [
       ...item.subjects,
       ...item.subjectTeacherAssignments.map(({ subject }) => subject),
@@ -63,7 +65,7 @@ export async function GET(request: NextRequest) {
       candidates = await prisma.subject.findMany({ orderBy: [{ reportOrder: 'asc' }, { name: 'asc' }], select: subjectSelect });
     }
   }
-  if (session.user.role === 'ADMIN' && !teacherId) {
+  if (adminAccess && !teacherId) {
     // Preserve subjects that already have marks even when the curriculum links
     // were removed or never backfilled for this legacy class.
     const markedSubjectIds = await Promise.all([
@@ -78,12 +80,12 @@ export async function GET(request: NextRequest) {
   }
   const teacherSubjectIds = new Set([...(teacher?.subjects ?? []).map(({ id }) => id), ...(teacher?.subjectTeacherAssignments ?? []).map(({ subjectId: id }) => id)]);
   for (const subject of candidates) {
-    if (session.user.role !== 'ADMIN' && !teacherSubjectIds.has(subject.id)) continue;
+    if (!adminAccess && !teacherSubjectIds.has(subject.id)) continue;
     const [scheme] = await Promise.all([getEffectiveMarkScheme(subject.id, subject.name, effectiveGradeId, classId)]);
     subjectMap.set(subject.id, { id: subject.id, name: subject.name, columns: withQuizAverageColumn(scheme.columns, subject.name) });
   }
   if (!subjectMap.size) {
-    const storedMarks = session.user.role === 'ADMIN' && !teacherId ? await Promise.all([
+    const storedMarks = adminAccess && !teacherId ? await Promise.all([
       prisma.managedStudentMark.findMany({ where: { classId, academicYear, term: semester }, select: { subjectId: true }, distinct: ['subjectId'] }),
       prisma.managedQuizMark.findMany({ where: { classId, academicYear, term: semester }, select: { subjectId: true }, distinct: ['subjectId'] }),
     ]) : null;

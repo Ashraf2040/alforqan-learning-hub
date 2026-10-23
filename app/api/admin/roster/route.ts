@@ -3,11 +3,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 type TeacherImportInput = { name?: unknown; username?: unknown; password?: unknown; email?: unknown; academicYear?: unknown; school?: unknown; classIds?: unknown; subjectIds?: unknown };
 type TeacherImportRow = { name: string; username: string; password: string; email: string; academicYear: string; school: string; classIds: string[]; subjectIds: string[] };
 
-async function isAdmin() { const session = await getServerSession(authOptions); return session?.user?.role === 'ADMIN' ? session : null; }
+async function isAdmin() { const session = await getServerSession(authOptions); return session?.user && await hasAdminFeature(session.user, 'people') ? session : null; }
 
 export async function GET() {
   if (!await isAdmin()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

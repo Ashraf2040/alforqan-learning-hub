@@ -4,8 +4,9 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getMarkSchemeAtScope, markSchemeScopeKey, resolveClassGradeId } from '@/lib/managed-mark-schemes';
 import { fieldsForSubject, type MarkColumn } from '@/lib/student-marks';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
-const canManage = (role: string) => role === 'ADMIN' || role === 'COORDINATOR';
+const canManage = async (user: { id: string; role: string }) => user.role === 'ADMIN' || user.role === 'COORDINATOR' || (user.role === 'CUSTOM_ADMIN' && await hasAdminFeature(user, 'markSchemes'));
 
 async function validateScope(subjectId: string, gradeId: string, classId: string) {
   const subject = await prisma.subject.findUnique({ where: { id: subjectId }, select: { id: true, name: true } });
@@ -24,7 +25,7 @@ async function validateScope(subjectId: string, gradeId: string, classId: string
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'COORDINATOR', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'COORDINATOR', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'markSchemes')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const query = request.nextUrl.searchParams;
   const subjectId = query.get('subjectId') ?? '';
   const gradeId = query.get('gradeId') ?? '';
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !canManage(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await canManage(session.user))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   try {
     const body = await request.json();
     const subjectId = String(body.subjectId ?? '');
@@ -75,7 +76,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !canManage(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await canManage(session.user))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   try {
     const body = await request.json();
     const subjectId = String(body.subjectId ?? '');

@@ -2,10 +2,11 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'studentReports')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const teacherId = session.user.role === 'TEACHER' ? session.user.id : request.nextUrl.searchParams.get('teacherId') || undefined;
   const user = session.user.role === 'TEACHER' ? await prisma.user.findUnique({ where: { id: session.user.id }, include: { classes: true, subjects: true, classTeacherAssignments: true, subjectTeacherAssignments: true } }) : null;
   const classIds = user ? [...new Set([...user.classes.map((item) => item.id), ...user.classTeacherAssignments.map((item) => item.classId)])] : undefined;
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'studentReports')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   try {
     const body = await request.json();
     const studentId = String(body.studentId ?? ''); const subjectId = String(body.subjectId ?? '');

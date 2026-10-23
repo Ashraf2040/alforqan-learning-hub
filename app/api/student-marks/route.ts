@@ -7,6 +7,7 @@ import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-
 import { calculateQuizAverage, getQuizLimits, injectQuizAverage, isQuizField, withQuizAverageColumn } from '@/lib/managed-quiz-marks';
 import { isSemester } from '@/lib/academic-periods';
 import { canTeacherEditMarks } from '@/lib/mark-submission-policy';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 
 async function resolveAccess(role: string, sessionUserId: string, teacherId: string, classId: string, subjectId: string) {
@@ -14,7 +15,7 @@ async function resolveAccess(role: string, sessionUserId: string, teacherId: str
     where: { id: teacherId, role: 'TEACHER' },
     include: { classes: { select: { id: true } }, classTeacherAssignments: { select: { classId: true } }, subjects: { select: { id: true } }, subjectTeacherAssignments: { select: { subjectId: true } } },
   });
-  if (!teacher || (role !== 'ADMIN' && teacher.id !== sessionUserId)) return null;
+  if (!teacher || (role !== 'ADMIN' && role !== 'CUSTOM_ADMIN' && teacher.id !== sessionUserId)) return null;
   const classIds = new Set([...teacher.classes.map(({ id }) => id), ...teacher.classTeacherAssignments.map(({ classId: id }) => id)]);
   const subjectIds = new Set([...teacher.subjects.map(({ id }) => id), ...teacher.subjectTeacherAssignments.map(({ subjectId: id }) => id)]);
   if (!classIds.has(classId) || !subjectIds.has(subjectId)) return null;
@@ -29,9 +30,10 @@ async function resolveAccess(role: string, sessionUserId: string, teacherId: str
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'studentMarks')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const adminAccess = session.user.role === 'ADMIN' || session.user.role === 'CUSTOM_ADMIN';
   const query = request.nextUrl.searchParams;
-  const teacherId = session.user.role === 'ADMIN' ? (query.get('teacherId') ?? '') : session.user.id;
+  const teacherId = adminAccess ? (query.get('teacherId') ?? '') : session.user.id;
   const classId = query.get('classId') ?? '';
   const subjectId = query.get('subjectId') ?? '';
   const academicYear = query.get('academicYear')?.trim() ?? '';
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
   const access = await resolveAccess(session.user.role, session.user.id, teacherId, classId, subjectId);
   if (!access) return NextResponse.json({ error: 'Choose a class and subject assigned to this teacher.' }, { status: 403 });
   const [records, quizRecords, students, scheme, quizLimits] = await Promise.all([
-    prisma.managedStudentMark.findMany({ where: { classId, subjectId, academicYear, term: semester } }),
+    prisma.managedStudentMark.findMany({ where: { classId, subjectId, academicYear, term: semester }, include: { updatedBy: { select: { name: true } } } }),
     prisma.managedQuizMark.findMany({ where: { classId, subjectId, academicYear, term: semester } }),
     Promise.resolve(access.schoolClass.students),
     getEffectiveMarkScheme(subjectId, access.subject.name, access.schoolClass.gradeId, classId),
@@ -49,11 +51,14 @@ export async function GET(request: NextRequest) {
   const columns = withQuizAverageColumn(scheme.columns, access.subject.name);
   const byStudent = new Map(records.map((record) => [record.studentId, record]));
   const quizByStudent = new Map(quizRecords.map((record) => [record.studentId, record]));
+  const latestEdit = records.reduce<typeof records[number] | null>((latest, record) => !latest || record.updatedAt > latest.updatedAt ? record : latest, null);
   return NextResponse.json({
     className: access.schoolClass.name,
     subjectName: access.subject.name,
     columns,
     resolvedScope: scheme.resolvedScope,
+    lastEditedBy: latestEdit?.updatedBy?.name ?? null,
+    lastEditedAt: latestEdit?.updatedAt ?? null,
     students: students.map((student) => {
       const record = byStudent.get(student.id);
       const quiz = quizByStudent.get(student.id);
@@ -67,10 +72,11 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'studentMarks')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+  const adminAccess = session.user.role === 'ADMIN' || session.user.role === 'CUSTOM_ADMIN';
   try {
     const body = await request.json();
-    const teacherId = session.user.role === 'ADMIN' ? String(body.teacherId ?? '') : session.user.id;
+    const teacherId = adminAccess ? String(body.teacherId ?? '') : session.user.id;
     const classId = String(body.classId ?? '');
     const subjectId = String(body.subjectId ?? '');
     const academicYear = String(body.academicYear ?? '').trim();

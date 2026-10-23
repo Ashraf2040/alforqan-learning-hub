@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useLocale } from 'next-intl';
+import { useAdminFeature } from '@/app/admin/useAdminFeature';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'react-hot-toast';
@@ -36,6 +37,7 @@ const terms = SEMESTERS;
 const control = 'mt-2 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 shadow-sm focus:border-[#e16262] focus:outline-none focus:ring-2 focus:ring-[#fce1e1]';
 
 export default function StudentCertificatesManager() {
+  useAdminFeature('certificates');
   const locale = useLocale();
   const rtl = locale === 'ar';
   const router = useRouter();
@@ -55,7 +57,7 @@ export default function StudentCertificatesManager() {
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
     if (status !== 'authenticated') return;
-    if (session?.user.role !== 'ADMIN') { router.replace('/'); return; }
+    if (!['ADMIN', 'CUSTOM_ADMIN'].includes(session?.user.role ?? '')) { router.replace('/'); return; }
     let active = true;
     void fetch('/api/admin/student-certificates/options', { cache: 'no-store' })
       .then(async (response) => { const data = await response.json(); if (!response.ok) throw new Error(data.error); if (active) { setClasses(data.classes ?? []); setAcademicYears([...new Set([...years, ...(data.academicYears ?? [])])].sort((a, b) => b.localeCompare(a))); } })

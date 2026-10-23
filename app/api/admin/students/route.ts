@@ -2,13 +2,14 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 type StudentImportInput = { name?: unknown; classId?: unknown; grade?: unknown; className?: unknown };
 type StudentImportRow = { name: string; classId: string; grade: string; className: string };
 const gradeNumber = (value: string) => value.trim().match(/^\D*(\d+)/)?.[1] ?? '';
 class StudentImportValidationError extends Error {}
 
-async function adminOnly() { const session = await getServerSession(authOptions); return session?.user?.role === 'ADMIN'; }
+async function adminOnly() { const session = await getServerSession(authOptions); return Boolean(session?.user && await hasAdminFeature(session.user, 'people')); }
 export async function GET() {
   if (!await adminOnly()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const [students, classes] = await Promise.all([

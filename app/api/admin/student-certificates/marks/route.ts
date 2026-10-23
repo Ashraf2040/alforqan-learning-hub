@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { hasAdminFeature } from '@/lib/custom-admin';
 import { prisma } from '@/lib/prisma';
 import { emptyMarkValues, MARK_FIELDS, type MarkField } from '@/lib/student-marks';
 import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-schemes';
@@ -10,7 +11,7 @@ import { isSemester } from '@/lib/academic-periods';
 
 export async function PATCH(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'certificates'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   try {
     const body = await request.json();
     const { studentId, classId, subjectId, field } = body as { studentId?: string; classId?: string; subjectId?: string; field?: string };

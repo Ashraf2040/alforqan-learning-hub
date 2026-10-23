@@ -7,6 +7,8 @@ import { useLocale } from 'next-intl';
 import { toast } from 'react-hot-toast';
 import { SEMESTERS } from '@/lib/academic-periods';
 import { ControlLoader } from '@/app/components/ControlLoader';
+import { useAdminFeature } from '@/app/admin/useAdminFeature';
+import { MarkDeadlineCountdown } from '@/app/student-marks/MarkDeadlineCountdown';
 
 type Item = { id: string; name: string };
 type Teacher = Item & { classes: Item[]; subjects: Item[] };
@@ -18,6 +20,7 @@ const control = 'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.
 
 export default function QuizMarksManager({ mode }: Props) {
   const admin = mode === 'admin';
+  useAdminFeature('quizMarks', admin);
   const rtl = useLocale() === 'ar';
   const { data, status } = useSession();
   const router = useRouter();
@@ -47,7 +50,7 @@ export default function QuizMarksManager({ mode }: Props) {
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
     if (status !== 'authenticated') return;
-    if ((admin && data?.user?.role !== 'ADMIN') || (!admin && data?.user?.role !== 'TEACHER')) { router.replace('/'); return; }
+    if ((admin && !['ADMIN', 'CUSTOM_ADMIN'].includes(data?.user?.role ?? '')) || (!admin && data?.user?.role !== 'TEACHER')) { router.replace('/'); return; }
     let live = true;
     void (async () => {
       try {
@@ -164,6 +167,7 @@ export default function QuizMarksManager({ mode }: Props) {
     <h1 className="mt-2 text-3xl font-black text-slate-900">{rtl ? 'درجات الاختبارات القصيرة' : 'Quiz Marks'}</h1>
     <p className="mt-2 text-slate-500">{rtl ? 'أدخل درجتي الاختبارين؛ سيحسب النظام متوسطهما ويحوّله تلقائياً إلى الدرجة القصوى لرأس الاختبار في كشف الفصل.' : 'Enter both quiz scores. Their normalized average is automatically scaled to the Quiz header maximum in the class report.'}</p>
     {!admin && !teacherCanEdit && <p role="status" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-900">{rtl ? `انتهى موعد إدخال الدرجات${submissionDeadline ? ` في ${new Date(submissionDeadline).toLocaleString()}` : ''}. يمكنك عرض الدرجات فقط.` : `The mark submission deadline has passed${submissionDeadline ? ` (${new Date(submissionDeadline).toLocaleString()})` : ''}. You can view marks but cannot edit them.`}</p>}
+    {!admin && teacherCanEdit && submissionDeadline && <div className="mt-4"><MarkDeadlineCountdown deadline={submissionDeadline} rtl={rtl} /></div>}
     {admin && <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
       <h2 className="text-lg font-black text-slate-900">{rtl ? 'الدرجة القصوى حسب المادة' : 'Set quiz maximums by subject'}</h2>
       <p className="mt-1 text-sm text-slate-500">{rtl ? 'هذه الحدود مستقلة عن رؤوس وجدول درجات الفصل.' : 'These limits are separate from the semester marks table headers and settings.'}</p>

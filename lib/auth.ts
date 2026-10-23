@@ -16,14 +16,23 @@ export const authOptions: NextAuthOptions = {
     name: 'School account',
     credentials: { username: { label: 'Username', type: 'text' }, password: { label: 'Password', type: 'password' } },
     async authorize(credentials) {
-      if (!credentials?.username || !credentials.password) return null;
-      const user = await prisma.user.findUnique({ where: { username: credentials.username } });
-      if (!user) return null;
-      const valid = user.password.startsWith('$2')
-        ? await (await import('bcryptjs')).compare(credentials.password, user.password)
-        : credentials.password === user.password;
-      if (!valid) return null;
-      return { id: user.id, name: user.name, username: user.username, role: user.role };
+      const username = credentials?.username?.trim().toLowerCase();
+      const password = credentials?.password;
+      if (!username || !password) { console.warn('[auth] Login rejected: username or password missing.'); return null; }
+      try {
+        const user = await prisma.user.findUnique({ where: { username } });
+        if (!user) { console.warn('[auth] Login rejected: account not found.'); return null; }
+        if (!['ADMIN', 'TEACHER', 'COORDINATOR', 'CUSTOM_ADMIN'].includes(user.role)) { console.warn(`[auth] Login rejected: account ${user.id} has inactive role ${user.role}.`); return null; }
+        const valid = user.password.startsWith('$2')
+          ? await (await import('bcryptjs')).compare(password, user.password)
+          : password === user.password;
+        if (!valid) { console.warn(`[auth] Login rejected: password mismatch for account ${user.id}.`); return null; }
+        console.info(`[auth] Login accepted: account ${user.id}, role ${user.role}.`);
+        return { id: user.id, name: user.name, username: user.username, role: user.role };
+      } catch (error) {
+        console.error('[auth] Login could not reach or query the user database.', error);
+        throw error;
+      }
     },
   })],
   pages: { signIn: '/login' },

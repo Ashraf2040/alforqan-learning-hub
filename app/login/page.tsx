@@ -11,12 +11,17 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError('');
-    const data = new FormData(event.currentTarget);
-    const result = await signIn('credentials', { username: data.get('username'), password: data.get('password'), redirect: false });
-    if (result?.error) { setError(t('invalid')); setBusy(false); return; }
-    const session = await getSession();
-    const workspace = session?.user?.role === 'ADMIN' ? '/admin' : '/teacher';
-    router.replace(workspace); router.refresh();
+    try {
+      const data = new FormData(event.currentTarget);
+      const result = await signIn('credentials', { username: data.get('username'), password: data.get('password'), redirect: false });
+      if (result?.error) { setError(t('invalid')); setBusy(false); return; }
+      const session = await getSession();
+      const workspace = session?.user?.role === 'ADMIN' || session?.user?.role === 'CUSTOM_ADMIN' ? '/admin' : '/teacher';
+      router.replace(workspace); router.refresh();
+    } catch (cause) {
+      console.error('[login] Sign-in failed before the workspace could open.', cause);
+      setError('Could not complete sign-in. Check the server and database logs, then try again.'); setBusy(false);
+    }
   }
   return <main className="grid min-h-screen place-items-center bg-[radial-gradient(ellipse_at_top_right,_#f4f4f4,_transparent_45%),linear-gradient(135deg,#f9f9f9,#f4f4f4)] px-5 py-12">
     <section className="w-full max-w-md rounded-3xl border border-white bg-white/95 p-8 shadow-[0_25px_70px_-35px_rgba(34,40,49,.35)] sm:p-10">

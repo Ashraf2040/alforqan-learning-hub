@@ -2,11 +2,12 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 type Context = { params: Promise<{ id: string }> };
 async function allowed() {
   const session = await getServerSession(authOptions);
-  return session?.user?.role === 'ADMIN';
+  return Boolean(session?.user && await hasAdminFeature(session.user, 'planner'));
 }
 
 export async function PATCH(request: NextRequest, { params }: Context) {

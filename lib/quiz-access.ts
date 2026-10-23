@@ -5,7 +5,7 @@ export async function resolveQuizAccess(role: string, sessionUserId: string, tea
     where: { id: teacherId, role: 'TEACHER' },
     include: { classes: { select: { id: true } }, classTeacherAssignments: { select: { classId: true } }, subjects: { select: { id: true } }, subjectTeacherAssignments: { select: { subjectId: true } } },
   });
-  if (!teacher || (role !== 'ADMIN' && teacher.id !== sessionUserId)) return null;
+  if (!teacher || (role !== 'ADMIN' && role !== 'CUSTOM_ADMIN' && teacher.id !== sessionUserId)) return null;
   const hasClass = teacher.classes.some(({ id }) => id === classId) || teacher.classTeacherAssignments.some(({ classId: assignedClass }) => assignedClass === classId);
   const hasSubject = teacher.subjects.some(({ id }) => id === subjectId) || teacher.subjectTeacherAssignments.some(({ subjectId: assignedSubject }) => assignedSubject === subjectId);
   if (!hasClass || !hasSubject) return null;

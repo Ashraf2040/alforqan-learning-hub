@@ -751,7 +751,8 @@ main > section:not(#weekly-plan-print), main > form { box-shadow: var(--shadow-m
 @page admin-marks-report { size: A4 landscape; margin: 10mm; }
 @media print {
   body:has(#admin-student-marks-print) * { visibility: hidden !important; }
-  main:has(#admin-student-marks-print) { animation: none !important; transform: none !important; }
+  body:has(#admin-student-marks-print) main:has(#admin-student-marks-print) > :not(#admin-student-marks-print) { display: none !important; }
+  main:has(#admin-student-marks-print) { animation: none !important; transform: none !important; height: auto !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; }
   body:has(#admin-student-marks-print) #admin-student-marks-print,
   body:has(#admin-student-marks-print) #admin-student-marks-print * { visibility: visible !important; }
   #admin-student-marks-print {
@@ -768,22 +769,31 @@ main > section:not(#weekly-plan-print), main > form { box-shadow: var(--shadow-m
     display: flex !important;
     align-items: end !important;
     justify-content: space-between !important;
-    gap: 12mm !important;
+    gap: 5mm !important;
     border-bottom: 2px solid #222831 !important;
     border-top: 5px solid #e5484d !important;
-    padding: 6mm 0 4mm !important;
-    margin-bottom: 6mm !important;
+    padding: 3mm 0 2mm !important;
+    margin-bottom: 3mm !important;
   }
-  #admin-student-marks-print .marks-print-heading p { margin: 0 0 2mm !important; color: #555 !important; font-size: 9pt !important; font-weight: 700 !important; text-transform: uppercase !important; }
-  #admin-student-marks-print .marks-print-heading h1 { margin: 0 !important; color: #111827 !important; font-size: 24pt !important; font-weight: 800 !important; }
-  #admin-student-marks-print .marks-print-meta { display: grid !important; gap: 2mm !important; text-align: end !important; font-size: 10pt !important; }
+  #admin-student-marks-print .marks-print-heading p { margin: 0 0 1mm !important; color: #555 !important; font-size: 8pt !important; font-weight: 700 !important; text-transform: uppercase !important; }
+  #admin-student-marks-print .marks-print-heading h1 { margin: 0 !important; color: #111827 !important; font-size: 20pt !important; font-weight: 800 !important; }
+  #admin-student-marks-print .marks-print-meta { display: flex !important; flex-wrap: wrap !important; justify-content: flex-end !important; gap: 2mm 5mm !important; text-align: end !important; font-size: 8pt !important; }
   #admin-student-marks-print table { width: 100% !important; min-width: 0 !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 9pt !important; }
-  #admin-student-marks-print th, #admin-student-marks-print td { border: 1px solid #6b7280 !important; padding: 2.2mm 1.5mm !important; text-align: center !important; vertical-align: middle !important; }
-  #admin-student-marks-print th { background: #f3f4f6 !important; color: #111827 !important; font-weight: 800 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  #admin-student-marks-print td { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #admin-student-marks-print .marks-print-number-col { width: 5% !important; }
+  #admin-student-marks-print .marks-print-student-col { width: 22% !important; }
+  #admin-student-marks-print th, #admin-student-marks-print td { border: 1px solid #cbd5e1 !important; padding: 1.7mm 1.5mm !important; text-align: center !important; vertical-align: middle !important; }
+  #admin-student-marks-print th { background: #222831 !important; color: #fff !important; font-weight: 800 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  #admin-student-marks-print td { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-weight: 700 !important; }
+  #admin-student-marks-print td.bg-green-100,
+  #admin-student-marks-print td.bg-pink-100,
+  #admin-student-marks-print td.bg-yellow-100,
+  #admin-student-marks-print td.bg-red-100 { background: #fff !important; color: #111827 !important; }
+  #admin-student-marks-print tbody tr { height: 8mm !important; }
+  #admin-student-marks-print tbody tr:nth-child(even) td:not(.marks-print-total-cell) { background: #f8fafc !important; }
+  #admin-student-marks-print td.marks-print-total-cell { background: #e2e8f0 !important; color: #111827 !important; font-size: 10pt !important; font-weight: 900 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   #admin-student-marks-print th:nth-child(2), #admin-student-marks-print td:nth-child(2) { text-align: start !important; }
   #admin-student-marks-print tr { break-inside: avoid !important; page-break-inside: avoid !important; }
-  #admin-student-marks-print .marks-print-signature { display: flex !important; align-items: end !important; gap: 5mm !important; width: 75mm !important; margin: 18mm 0 0 auto !important; font-size: 10pt !important; font-weight: 700 !important; }
-  #admin-student-marks-print .marks-print-signature i { flex: 1 !important; border-bottom: 1px solid #111827 !important; height: 8mm !important; }
-  #admin-student-marks-print[dir="rtl"] .marks-print-signature { margin: 18mm auto 0 0 !important; }
+  #admin-student-marks-print .marks-print-signature { display: flex !important; align-items: end !important; gap: 5mm !important; width: 75mm !important; margin: 3mm 0 0 auto !important; font-size: 9pt !important; font-weight: 700 !important; break-inside: avoid !important; page-break-inside: avoid !important; }
+  #admin-student-marks-print .marks-print-signature i { flex: 1 !important; border-bottom: 1px solid #111827 !important; height: 6mm !important; }
+  #admin-student-marks-print[dir="rtl"] .marks-print-signature { margin: 3mm auto 0 0 !important; }
 }

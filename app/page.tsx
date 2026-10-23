@@ -17,25 +17,26 @@ function Icon({ name }: { name: 'plan' | 'progress' | 'reports' | 'arrow' | 'mar
 export default async function Home() {
   const t = await getTranslations('landing');
   const session = await getServerSession(authOptions);
-  const workspace = session?.user.role === 'ADMIN' ? '/admin' : '/teacher';
+  const workspace = ['ADMIN', 'CUSTOM_ADMIN'].includes(session?.user.role ?? '') ? '/admin' : '/teacher';
   return <main id="main-content" className="overflow-hidden text-slate-900">
     <a href="#platform" className="sr-only z-50 rounded-lg bg-white px-4 py-3 text-blue-800 focus:not-sr-only focus:fixed focus:start-4 focus:top-4">{t('secondaryCta')}</a>
-    <section className="relative isolate border-b border-slate-200 bg-[#f8fafc]">
+    <section className="relative isolate overflow-hidden border-b border-slate-200 bg-[radial-gradient(ellipse_at_78%_18%,rgba(219,234,254,.9),transparent_34%),linear-gradient(135deg,#f8fafc_0%,#fff_55%,#f1f5f9_100%)]">
+      <div aria-hidden className="pointer-events-none absolute -end-24 top-16 h-72 w-72 rounded-full bg-blue-200/30 blur-3xl sm:h-96 sm:w-96" />
       <div className="relative mx-auto grid w-full max-w-[1280px] items-center gap-10 px-5 py-12 sm:px-8 sm:py-16 lg:grid-cols-2 lg:gap-12 lg:px-8 lg:py-20 xl:px-10 xl:py-24">
         <div className="relative z-10 min-w-0 max-w-2xl lg:justify-self-end">
-          <p className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-3.5 py-2 text-xs font-bold tracking-wide text-slate-700 sm:text-sm"><span aria-hidden className="grid h-5 w-5 place-items-center rounded-full bg-blue-50 text-blue-700">✓</span>{t('eyebrow')}</p>
-          <h1 className="mt-6 max-w-[14ch] text-[clamp(2rem,5vw,4rem)] font-semibold leading-[1.1] tracking-[-.045em] text-[#222831]">{t('title')}</h1>
-          <p className="mt-5 max-w-[52ch] text-lg leading-7 text-slate-600 sm:text-xl sm:leading-8">{t('intro')}</p>
+          <p className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/90 px-3.5 py-2 text-xs font-bold tracking-wide text-slate-700 shadow-sm sm:text-sm"><span aria-hidden className="grid h-5 w-5 place-items-center rounded-full bg-blue-50 text-blue-700">✓</span>{t('eyebrow')}</p>
+          <h1 className="mt-6 max-w-[15ch] text-[clamp(2.15rem,5vw,4.4rem)] font-bold leading-[1.04] tracking-[-.05em] text-[#182230]">{t('title')}</h1>
+          <p className="mt-5 max-w-[52ch] text-base leading-7 text-slate-600 sm:text-xl sm:leading-8">{t('intro')}</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link href={session ? workspace : '/login'} className="group inline-flex min-h-12 items-center justify-center gap-3 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white no-underline transition hover:-translate-y-0.5 hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">{session ? t('primaryCta') : t('signedOutCta')}<span className="transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"><Icon name="arrow" /></span></Link>
             <a href="#platform" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 no-underline transition hover:border-blue-300 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">{t('secondaryCta')}</a>
           </div>
-          <div className="mt-9 flex flex-col gap-2 border-t border-slate-200 pt-5 text-sm font-semibold text-slate-600 sm:flex-row sm:flex-wrap sm:gap-x-6"><span className="inline-flex items-center gap-2"><span className="text-blue-700">✓</span>{t('featurePlanTitle')}</span><span className="inline-flex items-center gap-2"><span className="text-blue-700">✓</span>{t('featureProgressTitle')}</span><span className="inline-flex items-center gap-2"><span className="text-blue-700">✓</span>{t('featureReportsTitle')}</span></div>
+          <div className="mt-9 flex flex-col gap-2 border-t border-slate-200/80 pt-5 text-sm font-semibold text-slate-600 sm:flex-row sm:flex-wrap sm:gap-x-6"><span className="inline-flex items-center gap-2"><span className="text-blue-700">✓</span>{t('featurePlanTitle')}</span><span className="inline-flex items-center gap-2"><span className="text-blue-700">✓</span>{t('featureProgressTitle')}</span><span className="inline-flex items-center gap-2"><span className="text-blue-700">✓</span>{t('featureReportsTitle')}</span></div>
         </div>
 
         <div className="relative mx-auto w-full max-w-[640px] min-w-0 lg:justify-self-start" role="img" aria-label={t('dashboardCaption')}>
-          <div className="relative rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_20px_50px_-36px_rgba(15,23,42,.35)] sm:rounded-3xl sm:p-3">
-            <div className="overflow-hidden rounded-[1.25rem] border border-slate-200/90 bg-[#f9f9f9] sm:rounded-[1.5rem]">
+          <div className="relative rounded-2xl border border-white/80 bg-white/80 p-2 shadow-[0_32px_80px_-42px_rgba(15,23,42,.4)] ring-1 ring-slate-900/5 backdrop-blur sm:rounded-3xl sm:p-3">
+            <div className="overflow-hidden rounded-[1.25rem] border border-slate-200/90 bg-gradient-to-br from-slate-50 to-white sm:rounded-[1.5rem]">
               <div className="grid gap-3 p-3 sm:gap-4 sm:p-5">
                 <div className="min-w-0 space-y-3 sm:space-y-4">
                   <div><p className="text-xs font-bold text-blue-700 sm:text-sm">{t('dashboardLabel')}</p><h2 className="mt-1 text-lg font-bold tracking-tight text-slate-900 sm:text-2xl">{t('dashboardTitle')}</h2></div>
@@ -53,7 +54,7 @@ export default async function Home() {
 
     <section id="platform" className="scroll-mt-20 mx-auto w-full max-w-[1280px] px-5 py-16 sm:px-8 sm:py-20 lg:px-12 lg:py-24">
       <div className="mx-auto max-w-2xl text-center"><p className="text-xs font-bold uppercase tracking-[.18em] text-emerald-800">{t('sectionEyebrow')}</p><h2 className="mt-3 text-3xl font-semibold tracking-[-.04em] text-[#222831] sm:text-4xl">{t('sectionTitle')}</h2><p className="mt-4 text-base leading-7 text-slate-600">{t('sectionIntro')}</p></div>
-      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:gap-5">
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
         {(['plan','progress','reports','marks'] as const).map((name) => {
           const title = name === 'plan' ? t('featurePlanTitle') : name === 'progress' ? t('featureProgressTitle') : name === 'reports' ? t('featureReportsTitle') : t('featureMarksTitle');
           const copy = name === 'plan' ? t('featurePlanText') : name === 'progress' ? t('featureProgressText') : name === 'reports' ? t('featureReportsText') : t('featureMarksText');

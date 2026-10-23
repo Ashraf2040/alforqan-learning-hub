@@ -2,10 +2,11 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'teacherProgress'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
   const gradeId = request.nextUrl.searchParams.get('gradeId');
   const week = request.nextUrl.searchParams.get('week');

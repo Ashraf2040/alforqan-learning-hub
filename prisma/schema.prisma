@@ -9,29 +9,27 @@ datasource db {
 }
 
 model User {
-  id           String  @id @default(uuid())
-  username     String  @unique
-  name         String
-  password     String
-  role         String
-  email        String? @unique
-  arabicName   String?
-  academicYear String?
-  school       String?
-  signature    String?
-
-  classes                   Class[]          @relation("TeacherClasses")
-  subjects                  Subject[]        @relation("TeacherSubjects")
+  id                        String                    @id @default(uuid())
+  username                  String                    @unique
+  name                      String
+  password                  String
+  role                      String
+  email                     String?                   @unique
+  arabicName                String?
+  academicYear              String?
+  school                    String?
+  signature                 String?
   classTeacherAssignments   ClassTeacher[]
-  subjectTeacherAssignments SubjectTeacher[]
   lessons                   Lesson[]
-
-  weeklyPlannerSubmissions WeeklyPlannerSubmission[]
-  studentReports           StudentReport[]
-  schedulesCreated         Schedule[]                @relation("ScheduleCreator")
-  scheduleItems            ScheduleItem[]
-  managedMarksUpdates      ManagedStudentMark[]      @relation("ManagedMarksUpdater")
-  quizMarksUpdates         ManagedQuizMark[]         @relation("ManagedQuizMarksUpdater")
+  quizMarksUpdates          ManagedQuizMark[]         @relation("ManagedQuizMarksUpdater")
+  managedMarksUpdates       ManagedStudentMark[]      @relation("ManagedMarksUpdater")
+  schedulesCreated          Schedule[]                @relation("ScheduleCreator")
+  scheduleItems             ScheduleItem[]
+  studentReports            StudentReport[]
+  subjectTeacherAssignments SubjectTeacher[]
+  weeklyPlannerSubmissions  WeeklyPlannerSubmission[]
+  classes                   Class[]                   @relation("TeacherClasses")
+  subjects                  Subject[]                 @relation("TeacherSubjects")
 }
 
 model AppSetting {
@@ -41,43 +39,43 @@ model AppSetting {
 }
 
 model Class {
-  id       String   @id @default(uuid())
-  name     String
-  gradeId  String?
-  grade    Grade?   @relation(fields: [gradeId], references: [id], onDelete: SetNull)
-  teachers User[]   @relation("TeacherClasses")
-  lessons  Lesson[]
-
-  weeklyPlannerSubmissions WeeklyPlannerSubmission[]
-  students                 Student[]
-  classTeacherAssignments  ClassTeacher[]
+  id                       String                    @id @default(uuid())
+  name                     String
+  gradeId                  String?
+  grade                    Grade?                    @relation(fields: [gradeId], references: [id])
   classSubjects            ClassSubject[]
-  schedules                Schedule[]
-  managedMarks             ManagedStudentMark[]
+  classTeacherAssignments  ClassTeacher[]
+  lessons                  Lesson[]
   managedMarkSchemes       ManagedMarkScheme[]
   quizMarks                ManagedQuizMark[]
+  managedMarks             ManagedStudentMark[]
+  schedules                Schedule[]
+  students                 Student[]
+  weeklyPlannerSubmissions WeeklyPlannerSubmission[] @relation("ClassToWeeklyPlannerSubmission")
+  teachers                 User[]                    @relation("TeacherClasses")
+
+  @@index([gradeId])
 }
 
 model Subject {
-  id              String           @id @default(uuid())
-  name            String
-  reportOrder     Int              @default(0)
-  teachers        User[]           @relation("TeacherSubjects")
-  lessons         Lesson[]
-  weeklyPlanItems WeeklyPlanItem[]
-  grades          GradeSubject[]
-
-  weeklyPlannerItems        WeeklyPlannerItem[]
+  id                        String                @id @default(uuid())
+  name                      String
+  reportOrder               Int                   @default(0)
   adminWeeklyPlanItems      AdminWeeklyPlanItem[]
-  studentReports            StudentReport[]
   classSubjectAssignments   ClassSubject[]
-  teacherSubjectAssignments SubjectTeacher[]
-  marks                     Mark[]
-  managedMarks              ManagedStudentMark[]
+  grades                    GradeSubject[]
+  lessons                   Lesson[]
   managedMarkSchemes        ManagedMarkScheme[]
-  quizMarkSchemes           ManagedQuizScheme[]
   quizMarks                 ManagedQuizMark[]
+  quizMarkSchemes           ManagedQuizScheme?
+  managedMarks              ManagedStudentMark[]
+  marks                     Mark[]
   scheduleItems             ScheduleItem[]
+  studentReports            StudentReport[]
+  teacherSubjectAssignments SubjectTeacher[]
+  weeklyPlanItems           WeeklyPlanItem[]
+  weeklyPlannerItems        WeeklyPlannerItem[]
+  teachers                  User[]                @relation("TeacherSubjects")
 }
 
 model ClassTeacher {
@@ -122,14 +120,13 @@ model Mark {
   studentId      String
   classTeacherId String
   subjectId      String
-  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   classTeacher   ClassTeacher @relation(fields: [classTeacherId], references: [id], onDelete: Cascade)
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject        Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@unique([studentId, subjectId, classTeacherId])
 }
 
-// Separate marks workspace data. It intentionally does not reuse the legacy Mark model.
 model ManagedStudentMark {
   id              String   @id @default(uuid())
   studentId       String
@@ -149,35 +146,34 @@ model ManagedStudentMark {
   oralTest        Int      @default(0)
   reading         Int      @default(0)
   totalMarks      Int      @default(0)
-  extraMarks      String   @default("{}") @db.Text
   updatedAt       DateTime @updatedAt
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  extraMarks      String   @default("{}")
   class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  updatedBy       User?    @relation("ManagedMarksUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedBy       User?    @relation("ManagedMarksUpdater", fields: [updatedById], references: [id])
 
-  @@unique([studentId, classId, subjectId, academicYear, term])
+  @@unique([studentId, classId, subjectId, academicYear, term], map: "ManagedStudentMark_studentId_classId_subjectId_academicYear_ter")
   @@index([classId, subjectId, academicYear, term])
 }
 
 model ManagedMarkScheme {
   id        String   @id @default(uuid())
-  scopeKey  String   @unique
   subjectId String
+  columns   String
+  updatedAt DateTime @updatedAt
+  scopeKey  String   @unique
   gradeId   String?
   classId   String?
-  columns   String   @db.Text
-  updatedAt DateTime @updatedAt
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  grade     Grade?   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   class     Class?   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  grade     Grade?   @relation(fields: [gradeId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@index([subjectId])
   @@index([gradeId])
   @@index([classId])
 }
 
-// Quiz scores have independent limits and storage; the semester marks sheet reads them as injected columns.
 model ManagedQuizScheme {
   id        String   @id @default(uuid())
   subjectId String   @unique
@@ -198,12 +194,12 @@ model ManagedQuizMark {
   firstQuiz    Int      @default(0)
   secondQuiz   Int      @default(0)
   updatedAt    DateTime @updatedAt
-  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   class        Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student      Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
   subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  updatedBy    User?    @relation("ManagedQuizMarksUpdater", fields: [updatedById], references: [id], onDelete: SetNull)
+  updatedBy    User?    @relation("ManagedQuizMarksUpdater", fields: [updatedById], references: [id])
 
-  @@unique([studentId, classId, subjectId, academicYear, term])
+  @@unique([studentId, classId, subjectId, academicYear, term], map: "ManagedQuizMark_studentId_classId_subjectId_academicYear_term_k")
   @@index([classId, subjectId, academicYear, term])
 }
 
@@ -212,11 +208,11 @@ model Student {
   name             String
   classId          String
   createdAt        DateTime             @default(now())
+  managedQuizMarks ManagedQuizMark[]
+  managedMarks     ManagedStudentMark[]
+  marks            Mark[]
   class            Class                @relation(fields: [classId], references: [id], onDelete: Cascade)
   reports          StudentReport[]
-  marks            Mark[]
-  managedMarks     ManagedStudentMark[]
-  managedQuizMarks ManagedQuizMark[]
 
   @@index([classId, name])
 }
@@ -228,11 +224,9 @@ model StudentReport {
   subjectId         String
   academicYear      String
   semester          String
-  reportType        String   @default("First Report")
   status            String   @default("Not Started")
   recommendations   String[] @default([])
   comment           String   @default("")
-  ixlPracticeStatus String?
   participation     Int?
   behavior          Int?
   quizScore         Int?
@@ -240,11 +234,13 @@ model StudentReport {
   finalExam         Int?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  ixlPracticeStatus String?
+  reportType        String   @default("First Report")
   student           Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject           Subject  @relation(fields: [subjectId], references: [id])
   teacher           User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  subject           Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
 
-  @@unique([studentId, teacherId, subjectId, academicYear, semester, reportType])
+  @@unique([studentId, teacherId, subjectId, academicYear, semester, reportType], map: "StudentReport_studentId_teacherId_subjectId_academicYear_semest")
   @@index([teacherId, academicYear, semester])
 }
 
@@ -269,7 +265,6 @@ model Lesson {
   @@index([classId, date])
 }
 
-// Daily progress uses the active class timetable to determine expected teacher submissions.
 model Schedule {
   id        String         @id @default(uuid())
   classId   String
@@ -296,7 +291,7 @@ model ScheduleItem {
   teacherId  String?
   schedule   Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   subject    Subject  @relation(fields: [subjectId], references: [id])
-  teacher    User?    @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  teacher    User?    @relation(fields: [teacherId], references: [id])
 
   @@index([scheduleId])
   @@index([teacherId])
@@ -307,12 +302,12 @@ model ScheduleItem {
 model Grade {
   id                 String              @id @default(uuid())
   name               String              @unique
+  adminWeeklyPlans   AdminWeeklyPlan[]
   classes            Class[]
   subjects           GradeSubject[]
+  managedMarkSchemes ManagedMarkScheme[]
   plans              WeeklyPlan[]
   adminNotes         AdminPlannerNote[]  @relation("AdminPlannerNoteGrades")
-  adminWeeklyPlans   AdminWeeklyPlan[]
-  managedMarkSchemes ManagedMarkScheme[]
 }
 
 model GradeSubject {
@@ -340,7 +335,7 @@ model WeeklyPlan {
 }
 
 model WeeklyPlanItem {
-  id           String  @id @default(uuid())
+  id           String     @id @default(uuid())
   weeklyPlanId String
   subjectId    String
   unit         String
@@ -349,19 +344,10 @@ model WeeklyPlanItem {
   homework     String?
   classwork    String?
   dictation    String?
-
-  weeklyPlan WeeklyPlan @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
-  subject    Subject    @relation(fields: [subjectId], references: [id])
+  subject      Subject    @relation(fields: [subjectId], references: [id])
+  weeklyPlan   WeeklyPlan @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
 }
 
-enum Role {
-  TEACHER
-  ADMIN
-  COORDINATOR
-}
-
-// New weekly-planner data lives separately while reusing the current users,
-// teacher assignments, classes and subjects.
 model WeeklyPlannerSubmission {
   id        String              @id @default(uuid())
   teacherId String
@@ -373,9 +359,9 @@ model WeeklyPlannerSubmission {
   notes     String?
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
-  teacher   User                @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  classes   Class[]
   items     WeeklyPlannerItem[]
+  teacher   User                @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classes   Class[]             @relation("ClassToWeeklyPlannerSubmission")
 
   @@index([week, fromDate, toDate])
   @@index([teacherId])
@@ -387,8 +373,8 @@ model WeeklyPlannerItem {
   subjectId    String
   classwork    String                  @default("")
   homework     String                  @default("")
-  submission   WeeklyPlannerSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   subject      Subject                 @relation(fields: [subjectId], references: [id])
+  submission   WeeklyPlannerSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
 
   @@index([submissionId])
 }
@@ -397,9 +383,9 @@ model AdminPlannerNote {
   id        String   @id @default(uuid())
   content   String
   scope     String
-  week      String   @default("")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  week      String   @default("")
   grades    Grade[]  @relation("AdminPlannerNoteGrades")
 
   @@index([scope, week, updatedAt])
@@ -413,11 +399,11 @@ model AdminWeeklyPlan {
   fromDate       DateTime
   toDate         DateTime
   dictation      String?
-  dictationStyle String?
   notes          String?
-  notesStyle     String?
   createdAt      DateTime              @default(now())
   updatedAt      DateTime              @updatedAt
+  dictationStyle String?
+  notesStyle     String?
   grade          Grade                 @relation(fields: [gradeId], references: [id], onDelete: Cascade)
   items          AdminWeeklyPlanItem[]
 
@@ -430,11 +416,17 @@ model AdminWeeklyPlanItem {
   adminWeeklyPlanId String
   subjectId         String
   classwork         String          @default("")
-  classworkStyle    String?
   homework          String          @default("")
+  classworkStyle    String?
   homeworkStyle     String?
   plan              AdminWeeklyPlan @relation(fields: [adminWeeklyPlanId], references: [id], onDelete: Cascade)
   subject           Subject         @relation(fields: [subjectId], references: [id])
 
   @@unique([adminWeeklyPlanId, subjectId])
+}
+
+enum Role {
+  TEACHER
+  ADMIN
+  COORDINATOR
 }

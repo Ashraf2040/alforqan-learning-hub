@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 function normalize(user: { id: string; name: string; arabicName: string | null; classes: { id: string; name: string }[]; classTeacherAssignments: { class: { id: string; name: string } }[]; subjects: { id: string; name: string }[]; subjectTeacherAssignments: { subject: { id: string; name: string } }[] }) {
   return {
@@ -13,9 +14,9 @@ function normalize(user: { id: string; name: string; arabicName: string | null; 
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'studentMarks')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const include = { classes: { select: { id: true, name: true } }, classTeacherAssignments: { include: { class: { select: { id: true, name: true } } } }, subjects: { select: { id: true, name: true } }, subjectTeacherAssignments: { include: { subject: { select: { id: true, name: true } } } } } as const;
-  if (session.user.role === 'ADMIN') {
+  if (session.user.role === 'ADMIN' || session.user.role === 'CUSTOM_ADMIN') {
     const users = await prisma.user.findMany({ where: { role: 'TEACHER' }, orderBy: { name: 'asc' }, include });
     return NextResponse.json({ teachers: users.map(normalize) });
   }

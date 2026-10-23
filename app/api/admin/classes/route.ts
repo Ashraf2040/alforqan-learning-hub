@@ -2,10 +2,11 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature, hasAnyAdminFeature } from '@/lib/custom-admin';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAnyAdminFeature(session.user, ['planner', 'people']))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const [grades, classes, subjects] = await Promise.all([
     prisma.grade.findMany({ orderBy: { name: 'asc' }, include: { classes: { select: { id: true, name: true }, orderBy: { name: 'asc' } }, subjects: { orderBy: { position: 'asc' }, include: { subject: { select: { id: true, name: true } } } } } }),
     prisma.class.findMany({ orderBy: { name: 'asc' }, include: { grade: { select: { id: true, name: true } } } }),
@@ -38,7 +39,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'planner'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const body = await request.json();
   const name = String(body.name ?? '').trim();
   if (!name) return NextResponse.json({ error: 'Enter a grade name.' }, { status: 400 });
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'planner'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const body = await request.json();
   const gradeId = typeof body.gradeId === 'string' ? body.gradeId : '';
   if (!gradeId || !(await prisma.grade.findUnique({ where: { id: gradeId } }))) return NextResponse.json({ error: 'Choose an existing grade.' }, { status: 400 });

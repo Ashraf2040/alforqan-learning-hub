@@ -1,11 +1,12 @@
 import { getServerSession } from 'next-auth';
 import { NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
+import { hasAdminFeature } from '@/lib/custom-admin';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'COORDINATOR'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(session.user.role === 'COORDINATOR' || await hasAdminFeature(session.user, 'markSchemes'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const [subjects, grades, classes] = await Promise.all([
     prisma.subject.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     prisma.grade.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),

@@ -7,6 +7,7 @@ import { useLocale } from 'next-intl';
 import { toast } from 'react-hot-toast';
 import { defaultMarkColumns, type MarkColumn } from '@/lib/student-marks';
 import { ControlLoader } from '@/app/components/ControlLoader';
+import { useAdminFeature } from '@/app/admin/useAdminFeature';
 
 type Subject = { id: string; name: string };
 type Grade = { id: string; name: string };
@@ -16,6 +17,7 @@ const control = 'w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 
 export default function MarkSchemesPage() {
   const rtl = useLocale() === 'ar';
   const { data, status } = useSession();
+  useAdminFeature('markSchemes', data?.user?.role !== 'COORDINATOR');
   const router = useRouter();
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [grades, setGrades] = useState<Grade[]>([]);
@@ -32,8 +34,8 @@ export default function MarkSchemesPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
-    if (status === 'authenticated' && !['ADMIN', 'COORDINATOR'].includes(data?.user?.role ?? '')) router.replace('/');
-    if (status !== 'authenticated' || !['ADMIN', 'COORDINATOR'].includes(data?.user?.role ?? '')) return;
+    if (status === 'authenticated' && !['ADMIN', 'CUSTOM_ADMIN', 'COORDINATOR'].includes(data?.user?.role ?? '')) router.replace('/');
+    if (status !== 'authenticated' || !['ADMIN', 'CUSTOM_ADMIN', 'COORDINATOR'].includes(data?.user?.role ?? '')) return;
     let live = true;
     void fetch('/api/student-marks/scheme/options', { cache: 'no-store' }).then(async (response) => {
       const result = await response.json();

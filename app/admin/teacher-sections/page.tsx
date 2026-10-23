@@ -4,12 +4,14 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { toast } from 'react-hot-toast';
+import { useAdminFeature } from '@/app/admin/useAdminFeature';
 import MarkSubmissionPolicySettings from '@/app/admin/mark-submission-policy/MarkSubmissionPolicySettings';
 
 type Sections = { weeklyPlans: boolean; todaysProgress: boolean; studentReports: boolean; studentMarks: boolean; quizMarks: boolean };
 const defaults: Sections = { weeklyPlans: true, todaysProgress: true, studentReports: true, studentMarks: true, quizMarks: true };
 
 export default function TeacherSectionsPage() {
+  useAdminFeature('teacherSections');
   const locale = useLocale();
   const rtl = locale === 'ar';
   const { status, data } = useSession();
@@ -19,8 +21,8 @@ export default function TeacherSectionsPage() {
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
-    if (status === 'authenticated' && data?.user?.role !== 'ADMIN') router.replace('/');
-    if (status !== 'authenticated' || data?.user?.role !== 'ADMIN') return;
+    if (status === 'authenticated' && !['ADMIN', 'CUSTOM_ADMIN'].includes(data?.user?.role ?? '')) router.replace('/');
+    if (status !== 'authenticated' || !['ADMIN', 'CUSTOM_ADMIN'].includes(data?.user?.role ?? '')) return;
     void fetch('/api/admin/teacher-sections', { cache: 'no-store' }).then(async (response) => {
       if (!response.ok) throw new Error();
       const result = await response.json();

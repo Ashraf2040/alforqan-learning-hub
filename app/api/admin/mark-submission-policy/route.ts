@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { getMarkSubmissionPolicy } from '@/lib/mark-submission-policy';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 const KEY = 'teacherMarkSubmissionPolicy';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || !['ADMIN', 'TEACHER'].includes(session.user.role)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !['ADMIN', 'TEACHER', 'CUSTOM_ADMIN'].includes(session.user.role) || (session.user.role === 'CUSTOM_ADMIN' && !(await hasAdminFeature(session.user, 'teacherSections')))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const policy = await getMarkSubmissionPolicy();
   const deadlinePassed = Boolean(policy.deadlineAt && Date.now() > Date.parse(policy.deadlineAt));
   if (session.user.role === 'TEACHER') {
@@ -21,7 +22,7 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'teacherSections'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   try {
     const body = await request.json() as { deadlineAt?: unknown; reopenAll?: unknown; reopenedTeacherIds?: unknown };
     const deadlineAt = body.deadlineAt === null || body.deadlineAt === '' ? null : typeof body.deadlineAt === 'string' && Number.isFinite(Date.parse(body.deadlineAt)) ? new Date(body.deadlineAt).toISOString() : undefined;

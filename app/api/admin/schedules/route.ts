@@ -2,10 +2,11 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'planner'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const [classes, subjects, teachers, schedules] = await Promise.all([
     prisma.class.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
     prisma.subject.findMany({ orderBy: { name: 'asc' }, select: { id: true, name: true } }),
@@ -17,7 +18,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'planner'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   try {
     const body = await request.json();
     const classId = String(body.classId ?? '');

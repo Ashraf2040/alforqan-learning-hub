@@ -7,6 +7,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { StudentReportModal, type ReportDraft } from './StudentReportModal';
 import ReportSubjectOrder from './ReportSubjectOrder';
 import { arabicReportStatus, arabicReportValue, arabicSubjectName, englishReportValue, isArabicTaughtSubject } from '@/lib/report-localization';
+import { useAdminFeature } from '@/app/admin/useAdminFeature';
 
 type Basic = { id: string; name: string; reportOrder?: number };
 type Student = Basic;
@@ -36,7 +37,8 @@ export default function ReportsPage() {
   const sessionUserId = session?.user.id;
   const sessionRole = session?.user.role;
   const loadErrorMessage = t('loadError');
-  const isAdmin = session?.user.role === 'ADMIN';
+  const isAdmin = session?.user.role === 'ADMIN' || session?.user.role === 'CUSTOM_ADMIN';
+  useAdminFeature('studentReports', isAdmin);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Basic[]>([]);
@@ -57,7 +59,7 @@ export default function ReportsPage() {
 
   useEffect(() => {
     if (sessionStatus === 'unauthenticated') router.replace('/login');
-    if (sessionStatus === 'authenticated' && !['ADMIN', 'TEACHER'].includes(sessionRole ?? '')) router.replace('/');
+    if (sessionStatus === 'authenticated' && !['ADMIN', 'CUSTOM_ADMIN', 'TEACHER'].includes(sessionRole ?? '')) router.replace('/');
     if (sessionStatus !== 'authenticated') return;
     let live = true;
     void fetch('/api/students', { cache: 'no-store' }).then(async (response) => {

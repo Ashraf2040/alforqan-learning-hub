@@ -2,10 +2,11 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { hasAdminFeature } from '@/lib/custom-admin';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'planner'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const classId = request.nextUrl.searchParams.get('classId');
   const week = request.nextUrl.searchParams.get('week');
   const date = request.nextUrl.searchParams.get('date');
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user || session.user.role !== 'ADMIN') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session?.user || !(await hasAdminFeature(session.user, 'planner'))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
   const body = await request.json();
   const week = typeof body.week === 'string' ? body.week.trim() : '';
   const semester = typeof body.semester === 'string' ? body.semester.trim() : '';
