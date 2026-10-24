@@ -26,6 +26,7 @@ export default function PeoplePage() {
   const router = useRouter();
   const [data, setData] = useState<Payload>({ teachers: [], classes: [], subjects: [] });
   const [busy, setBusy] = useState(false);
+  const [initialLoad, setInitialLoad] = useState<'loading' | 'ready' | 'error'>('loading');
   const [students, setStudents] = useState<ManagedStudent[]>([]);
   const [studentQuery, setStudentQuery] = useState('');
   const [studentClassFilter, setStudentClassFilter] = useState('');
@@ -47,12 +48,21 @@ export default function PeoplePage() {
     setStudents((await response.json()).students);
   }
 
+  async function loadInitialData() {
+    setInitialLoad('loading');
+    try {
+      await Promise.all([load(), loadStudents()]);
+      setInitialLoad('ready');
+    } catch {
+      setInitialLoad('error');
+      toast.error(tr('Could not load school data.', 'تعذر تحميل بيانات المدرسة.'));
+    }
+  }
+
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/login');
     if (status === 'authenticated' && !['ADMIN', 'CUSTOM_ADMIN'].includes(session?.user.role ?? '')) router.replace('/teacher');
-    if (status === 'authenticated' && ['ADMIN', 'CUSTOM_ADMIN'].includes(session?.user.role ?? '')) {
-      void Promise.all([load(), loadStudents()]).catch(() => toast.error(tr('Could not load school data.', 'تعذر تحميل بيانات المدرسة.')));
-    }
+    if (status === 'authenticated' && ['ADMIN', 'CUSTOM_ADMIN'].includes(session?.user.role ?? '')) void loadInitialData();
   }, [status, session, router]);
 
   async function submitTeacher(event: FormEvent) {
@@ -128,11 +138,13 @@ export default function PeoplePage() {
   const toggle = (key: 'classIds' | 'subjectIds', id: string) => setTeacher((old) => ({ ...old, [key]: old[key].includes(id) ? old[key].filter((value) => value !== id) : [...old[key], id] }));
   const visibleStudents = useMemo(() => students.filter((item) => item.name.toLocaleLowerCase().includes(studentQuery.trim().toLocaleLowerCase()) && (!studentClassFilter || item.classId === studentClassFilter)), [students, studentQuery, studentClassFilter]);
 
+  if (status === 'loading' || initialLoad === 'loading') return <main dir={rtl ? 'rtl' : 'ltr'} aria-label={tr('Loading school data', 'جارٍ تحميل بيانات المدرسة')} className="mx-auto min-h-[70vh] w-full max-w-[1600px] space-y-4 px-4 py-8 sm:px-7"><div className="h-7 w-56 animate-pulse rounded-lg bg-slate-200"/><div className="h-12 w-full animate-pulse rounded-xl bg-slate-200"/><div className="grid gap-5 xl:grid-cols-2"><div className="h-96 animate-pulse rounded-2xl bg-slate-100"/><div className="h-96 animate-pulse rounded-2xl bg-slate-100"/></div></main>;
+  if (initialLoad === 'error') return <main dir={rtl ? 'rtl' : 'ltr'} className="mx-auto grid min-h-[65vh] max-w-3xl place-items-center px-4 py-10"><section role="alert" className="w-full rounded-2xl border border-rose-200 bg-white p-7 text-center shadow-sm"><p className="font-bold text-slate-900">{tr('School data could not be loaded.', 'تعذر تحميل بيانات المدرسة.')}</p><button type="button" onClick={() => void loadInitialData()} className="mt-4 rounded-xl bg-[#222831] px-4 py-2.5 text-sm font-bold text-white">{tr('Try again', 'إعادة المحاولة')}</button></section></main>;
+
   return <main className="w-full px-4 py-7 sm:px-7 xl:px-10">
-    <header className="mb-6 overflow-hidden rounded-3xl bg-gradient-to-br from-[#222831] via-[#222831] to-[#222831] p-6 text-white shadow-lg sm:p-8">
-      <a href="/admin" className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-100 hover:text-white">{tr('← Admin dashboard', '→ لوحة الإدارة')}</a>
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-5"><div><p className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">{tr('School administration', 'إدارة المدرسة')}</p><h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">{tr('People & access', 'الأشخاص والصلاحيات')}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-emerald-50/85">{tr('Set up teacher access, place students in classes, and keep the school roster current.', 'أنشئ حسابات المعلمين، وأضف الطلاب إلى فصولهم، وحافظ على تحديث قوائم المدرسة.')}</p></div><nav aria-label={tr('Page sections', 'أقسام الصفحة')} className="flex flex-wrap gap-2 text-sm">{[['#create-teacher', tr('Teachers', 'المعلمون')], ['#create-student', tr('Students', 'الطلاب')], ['#csv-imports', tr('CSV imports', 'استيراد ملفات CSV')], ['#student-roster', tr('Roster', 'قائمة الطلاب')]].map(([href, text]) => <a key={href} href={href} className="rounded-full border border-white/20 bg-white/10 px-3.5 py-2 font-semibold text-white backdrop-blur hover:bg-white/20">{text}</a>)}</nav></div>
-      <div className="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4">{[[tr('Teachers', 'المعلمون'), data.teachers.length], [tr('Students', 'الطلاب'), students.length], [tr('Classes', 'الفصول'), data.classes.length], [tr('Subjects', 'المواد'), data.subjects.length]].map(([title, count]) => <div key={String(title)} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 backdrop-blur"><p className="text-xs font-semibold text-emerald-100">{title}</p><p className="mt-1 text-2xl font-black">{count}</p></div>)}</div>
+    <header className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+      <div><a href="/admin" className="text-sm font-semibold text-emerald-800 hover:text-emerald-950">{tr('← Admin dashboard', '→ لوحة الإدارة')}</a><p className="mt-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">{tr('School administration', 'إدارة المدرسة')}</p><h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">{tr('People & access', 'الأشخاص والصلاحيات')}</h1></div>
+      <nav aria-label={tr('Page sections', 'أقسام الصفحة')} className="flex flex-wrap gap-2 text-sm">{[['#create-teacher', tr('Teachers', 'المعلمون')], ['#create-student', tr('Students', 'الطلاب')], ['#csv-imports', tr('CSV imports', 'استيراد ملفات CSV')], ['#student-roster', tr('Roster', 'قائمة الطلاب')]].map(([href, text]) => <a key={href} href={href} className="rounded-full border border-slate-200 bg-white px-3.5 py-2 font-semibold text-slate-700 hover:bg-slate-50">{text}</a>)}</nav>
     </header>
 
     <div className="grid scroll-mt-5 gap-6 xl:grid-cols-2">

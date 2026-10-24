@@ -2,7 +2,7 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { emptyMarkValues, type MarkColumn } from '@/lib/student-marks';
+import { emptyMarkValues, MARK_FIELDS, type MarkColumn } from '@/lib/student-marks';
 import { getEffectiveMarkScheme, resolveClassGradeId } from '@/lib/managed-mark-schemes';
 import { getQuizLimits, injectQuizAverage, withQuizAverageColumn } from '@/lib/managed-quiz-marks';
 import { isSemester } from '@/lib/academic-periods';
@@ -104,7 +104,24 @@ export async function GET(request: NextRequest) {
   const byKey = new Map(records.map((record) => [`${record.studentId}:${record.subjectId}`, record]));
   const quizByKey = new Map(quizRecords.map((record) => [`${record.studentId}:${record.subjectId}`, record]));
   const quizLimitsBySubject = new Map(await Promise.all([...subjectMap.keys()].map(async (id) => [id, await getQuizLimits(id)] as const)));
-  const students = await Promise.all(schoolClass.students.map(async (student) => ({ ...student, gradedSubjectIds: [...subjectMap.keys()].filter((id) => byKey.has(`${student.id}:${id}`) || quizByKey.has(`${student.id}:${id}`)), marks: Object.fromEntries(await Promise.all([...subjectMap.keys()].map(async (id) => {
+  const hasRecordedColumn = (studentId: string, subjectId: string, column: MarkColumn) => {
+    const key = `${studentId}:${subjectId}`;
+    const record = byKey.get(key);
+    const quiz = quizByKey.get(key);
+    let extra: Record<string, unknown> = {};
+    try { extra = record ? JSON.parse(record.extraMarks) as Record<string, unknown> : {}; } catch { extra = {}; }
+    if (column.quizAverage) return Boolean(quiz && (quiz.firstQuiz > 0 || quiz.secondQuiz > 0));
+    if (column.field === 'finalExam' && extra.__finalExamAbsent === true) return true;
+    const value = (MARK_FIELDS as readonly string[]).includes(column.field)
+      ? Number((record as unknown as Record<string, unknown> | undefined)?.[column.field] ?? 0)
+      : Number(extra[column.field] ?? 0);
+    return value > 0;
+  };
+  const students = await Promise.all(schoolClass.students.map(async (student) => ({ ...student,
+    gradedSubjectIds: [...subjectMap.entries()].filter(([id, subject]) => subject.columns.some((column) => hasRecordedColumn(student.id, id, column))).map(([id]) => id),
+    completedSubjectIds: [...subjectMap.entries()].filter(([id, subject]) => subject.columns.length > 0 && subject.columns.every((column) => hasRecordedColumn(student.id, id, column))).map(([id]) => id),
+    recordedColumns: Object.fromEntries([...subjectMap.entries()].map(([id, subject]) => [id, subject.columns.filter((column) => hasRecordedColumn(student.id, id, column)).map(({ field }) => field)])),
+    marks: Object.fromEntries(await Promise.all([...subjectMap.keys()].map(async (id) => {
     const record = byKey.get(`${student.id}:${id}`);
     const quiz = quizByKey.get(`${student.id}:${id}`);
     let extra: Record<string, unknown> = {};

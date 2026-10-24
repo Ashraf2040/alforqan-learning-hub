@@ -31,7 +31,7 @@ export async function PATCH(request: NextRequest) {
     const [scheme, quizLimits] = await Promise.all([getEffectiveMarkScheme(subject.id, subject.name, gradeId, classId), getQuizLimits(subject.id)]);
     const columns = withQuizAverageColumn(scheme.columns, subject.name);
     const column = columns.find((item) => item.field === field);
-    if (!column || column.readOnly || score > column.max) return NextResponse.json({ error: `Enter a mark from 1 to ${column?.max ?? 0}; quiz average is calculated automatically.` }, { status: 400 });
+    if (!column || column.readOnly || score < 1 || score > column.max) return NextResponse.json({ error: `Enter a mark from 1 to ${column?.max ?? 0}; quiz average is calculated automatically.` }, { status: 400 });
     const key = { studentId, classId, subjectId, academicYear, term: semester };
     const current = await prisma.managedStudentMark.findUnique({ where: { studentId_classId_subjectId_academicYear_term: key } });
     let extra: Record<string, number | boolean> = {};

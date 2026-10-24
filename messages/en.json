@@ -107,7 +107,11 @@
     "clearFilter": "Clear filter",
     "filterRequired": "Enter a week number or choose a date.",
     "noFilteredPlans": "No weekly plans match this filter.",
-    "useFilterToSeePlans": "Apply a week or date filter to load your previous plans."
+    "useFilterToSeePlans": "Apply a week or date filter to load your previous plans.",
+    "sectionDisabled": "Your administrator has turned off weekly plans for your account. Contact them if you need access.",
+    "sectionAccessError": "We could not check whether weekly plans are available right now.",
+    "retryAccess": "Try again",
+    "backToTeacher": "Back to teacher home"
   },
   "dailyProgress": {
     "teacherEyebrow": "Daily teaching record",

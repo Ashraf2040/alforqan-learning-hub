@@ -2,10 +2,12 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { isTeacherSectionEnabled } from '@/lib/teacher-sections';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'TEACHER') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await isTeacherSectionEnabled('weeklyPlans'))) return NextResponse.json({ error: 'Weekly plans are disabled for your account.', sectionDisabled: true }, { status: 403 });
   const searchParams = request.nextUrl.searchParams;
   const week = searchParams.get('week')?.trim();
   const date = searchParams.get('date');
@@ -23,6 +25,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'TEACHER') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!(await isTeacherSectionEnabled('weeklyPlans'))) return NextResponse.json({ error: 'Weekly plans are disabled for your account.', sectionDisabled: true }, { status: 403 });
   try {
     const body = await request.json();
     const classIds = Array.isArray(body.classIds) ? [...new Set((body.classIds as unknown[]).filter((id): id is string => typeof id === 'string'))] : [];

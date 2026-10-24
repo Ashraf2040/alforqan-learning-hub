@@ -93,7 +93,6 @@ export default function AdminPage() {
   const [trackerLoaded, setTrackerLoaded] = useState(false);
   const [trackerLoading, setTrackerLoading] = useState(false);
   const [trackerError, setTrackerError] = useState('');
-  const [markDeadline, setMarkDeadline] = useState<string | null>(null);
   const [customFeatures, setCustomFeatures] = useState<AdminFeature[]>([]);
 
   async function reloadManagement(selectGradeId?: string) {
@@ -117,10 +116,6 @@ export default function AdminPage() {
     void fetch('/api/admin/custom-admins/access', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null).then((result) => { if (live) setCustomFeatures(result?.features ?? []); }).catch(() => undefined);
     return () => { live = false; };
   }, [session?.user.role]);
-  useEffect(() => {
-    if (status !== 'authenticated' || session?.user?.role !== 'ADMIN') return;
-    void fetch('/api/admin/mark-submission-policy', { cache: 'no-store' }).then((response) => response.ok ? response.json() : null).then((result) => setMarkDeadline(result?.policy?.deadlineAt ?? null)).catch(() => undefined);
-  }, [status, session?.user?.role]);
   useEffect(() => {
     if (!trackerOpen) return;
     const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') setTrackerOpen(false); };
@@ -342,18 +337,9 @@ export default function AdminPage() {
     finally { setSaving(false); }
   }
 
-  if (status === 'loading') return <div aria-label={t('load')} className="mx-auto grid min-h-[70vh] w-full max-w-[1600px] content-start gap-4 px-4 py-8 sm:px-7"><div className="h-7 w-56 animate-pulse rounded-lg bg-slate-200"/><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 4 }, (_, index) => <div key={index} className="h-28 animate-pulse rounded-xl border border-slate-200 bg-white p-4"><div className="h-3 w-24 rounded bg-slate-200"/><div className="mt-5 h-6 w-16 rounded bg-slate-200"/></div>)}</div><div className="h-14 animate-pulse rounded-xl bg-slate-200"/><div className="h-36 animate-pulse rounded-xl bg-slate-200"/></div>;
+  if (status === 'loading') return <div aria-label={t('load')} className="mx-auto grid min-h-[70vh] w-full max-w-[1600px] content-start gap-4 px-4 py-8 sm:px-7"><div className="h-7 w-56 animate-pulse rounded-lg bg-slate-200"/><div className="h-14 animate-pulse rounded-xl bg-slate-200"/><div className="h-36 animate-pulse rounded-xl bg-slate-200"/></div>;
   return <main className="w-full px-4 py-6 sm:px-7 xl:px-10 sm:py-8">
-    <p className="mb-5 text-lg font-semibold text-slate-800">{t('welcome', { name: session?.user.name || t('there') })}</p>
-    <section aria-label={locale === 'ar' ? 'ملخص المدرسة' : 'School overview'} className="mb-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-      {[
-        { label: locale === 'ar' ? 'الفصول' : 'Classes', value: payload.classes.length, hint: locale === 'ar' ? 'الفصول المسجلة' : 'Classes in the school' },
-        { label: locale === 'ar' ? 'الصفوف الدراسية' : 'Grades', value: payload.grades.length, hint: locale === 'ar' ? 'الصفوف المتاحة' : 'Available grade levels' },
-        { label: locale === 'ar' ? 'المواد' : 'Subjects', value: payload.subjects.length, hint: locale === 'ar' ? 'المواد الدراسية' : 'School subjects' },
-        { label: locale === 'ar' ? 'موعد تسليم الدرجات' : 'Marks deadline', value: markDeadline ? new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(markDeadline)) : (locale === 'ar' ? 'مفتوح' : 'No deadline'), hint: locale === 'ar' ? 'الموعد الحالي للمعلمين' : 'Current teacher submission window' },
-      ].map((metric) => <article key={metric.label} className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-sm font-medium text-slate-600">{metric.label}</p><p className="mt-2 truncate text-2xl font-semibold tracking-tight text-slate-900">{metric.value}</p><p className="mt-1 text-xs text-slate-600">{metric.hint}</p></article>)}
-    </section>
-    <div className="card mb-7 flex flex-wrap items-end justify-between gap-5 !rounded-3xl p-5 shadow-[0_20px_60px_-45px_rgba(34,40,49,.38)] sm:p-7"><div><p className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-100 before:h-1.5 before:w-1.5 before:rounded-full before:bg-emerald-600 before:content-['']">{t('eyebrow')}</p><h1 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">{t('title')}</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{t('intro')}</p></div><div role="tablist" className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-inner"><button type="button" role="tab" aria-selected={tab === 'planner'} onClick={() => setTab('planner')} className={tabClass(tab === 'planner')}>{t('plannerTab')}</button><button type="button" role="tab" aria-selected={tab === 'assign'} onClick={() => setTab('assign')} className={tabClass(tab === 'assign')}>{t('assignAdminTab')}</button><button type="button" role="tab" aria-selected={tab === 'manage'} onClick={() => setTab('manage')} className={tabClass(tab === 'manage')}>{t('manageTab')}</button>{(session?.user.role === 'ADMIN' || customFeatures.includes('dataBackup')) && <button type="button" role="tab" aria-selected={tab === 'backup'} onClick={() => setTab('backup')} className={tabClass(tab === 'backup')}>{locale === 'ar' ? 'نسخ احتياطي للبيانات' : 'Data backup'}</button>}</div></div>
+    <div className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-800">{t('eyebrow')}</p><h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">{t('title')}</h1></div><div role="tablist" className="flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-inner"><button type="button" role="tab" aria-selected={tab === 'planner'} onClick={() => setTab('planner')} className={tabClass(tab === 'planner')}>{t('plannerTab')}</button><button type="button" role="tab" aria-selected={tab === 'assign'} onClick={() => setTab('assign')} className={tabClass(tab === 'assign')}>{t('assignAdminTab')}</button><button type="button" role="tab" aria-selected={tab === 'manage'} onClick={() => setTab('manage')} className={tabClass(tab === 'manage')}>{t('manageTab')}</button>{(session?.user.role === 'ADMIN' || customFeatures.includes('dataBackup')) && <button type="button" role="tab" aria-selected={tab === 'backup'} onClick={() => setTab('backup')} className={tabClass(tab === 'backup')}>{locale === 'ar' ? 'نسخ احتياطي للبيانات' : 'Data backup'}</button>}</div></div>
 
     {tab === 'planner' ? <>
       <form id="weekly-planner" onSubmit={loadPlanner} className="card no-print mb-6 grid gap-4 p-5 sm:grid-cols-2 sm:p-6 lg:grid-cols-5 lg:items-end">

@@ -2,12 +2,14 @@ import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { isTeacherSectionEnabled } from '@/lib/teacher-sections';
 
 type Context = { params: Promise<{ id: string }> };
 
 async function authorizedPlan(id: string) {
   const session = await getServerSession(authOptions);
   if (!session?.user || session.user.role !== 'TEACHER') return { response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+  if (!(await isTeacherSectionEnabled('weeklyPlans'))) return { response: NextResponse.json({ error: 'Weekly plans are disabled for your account.', sectionDisabled: true }, { status: 403 }) };
   const plan = await prisma.weeklyPlannerSubmission.findFirst({ where: { id, teacherId: session.user.id } });
   if (!plan) return { response: NextResponse.json({ error: 'Plan not found.' }, { status: 404 }) };
   return { session, plan };

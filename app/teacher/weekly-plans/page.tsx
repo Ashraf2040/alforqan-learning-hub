@@ -28,6 +28,7 @@ export default function TeacherPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [loadingPlans, setLoadingPlans] = useState(false);
+  const [sectionAccess, setSectionAccess] = useState<'checking' | 'allowed' | 'denied' | 'error'>('checking');
   const [showPlanFilters, setShowPlanFilters] = useState(false);
   const [filterMode, setFilterMode] = useState<'week' | 'date'>('week');
   const [filterWeek, setFilterWeek] = useState('');
@@ -51,12 +52,14 @@ export default function TeacherPage() {
   useEffect(() => {
     if (status !== 'authenticated') return;
     void fetch('/api/teacher/options').then(async (response) => {
-      if (!response.ok) throw new Error();
       const data = await response.json();
+      if (response.status === 403 && data.sectionDisabled) { setSectionAccess('denied'); return; }
+      if (!response.ok) throw new Error(data.error || t('saveError'));
+      setSectionAccess('allowed');
       setClasses(data.classes ?? []); setSubjects(data.subjects ?? []);
       if ((data.subjects ?? []).length) setItems([{ subjectId: data.subjects[0].id, classwork: '', homework: '' }]);
-    }).catch(() => setError(t('saveError')));
-  }, [status]);
+    }).catch(() => { setError(t('saveError')); setSectionAccess('error'); });
+  }, [status, t]);
   useEffect(() => {
     if (status !== 'authenticated' || session?.user.role !== 'TEACHER') return;
     let live = true;
@@ -135,6 +138,8 @@ export default function TeacherPage() {
   }
 
   if (status === 'loading') return <div className="grid min-h-[70vh] place-items-center text-sm font-medium text-slate-500"><span className="inline-flex items-center gap-3"><span aria-hidden className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-700" />{t('loading')}</span></div>;
+  if (status === 'authenticated' && sectionAccess !== 'allowed') return <main dir={rtl ? 'rtl' : 'ltr'} className="mx-auto grid min-h-[65vh] w-full max-w-3xl place-items-center px-4 py-10 sm:px-7"><section className="w-full rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-sm" role={sectionAccess === 'denied' || sectionAccess === 'error' ? 'alert' : 'status'}><h1 className="text-2xl font-black text-slate-900">{t('plannerTab')}</h1><p className="mt-3 text-sm leading-7 text-slate-600">{sectionAccess === 'denied' ? t('sectionDisabled') : sectionAccess === 'error' ? t('sectionAccessError') : t('loading')}</p>{sectionAccess === 'error' && <button type="button" onClick={() => window.location.reload()} className="btn-secondary mt-5">{t('retryAccess')}</button>}{sectionAccess === 'denied' && <Link href="/teacher" className="btn-secondary mt-5 inline-flex">{t('backToTeacher')}</Link>}</section></main>;
+
   return <main className="w-full px-4 py-9 sm:px-7 xl:px-10">
     <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-white p-5 shadow-sm"><div><p className="text-xl font-bold tracking-tight text-slate-900">{t('welcome', { name: session?.user.name || t('there') })}</p><p className="mt-1 text-sm text-slate-600">{t('welcomeHint')}</p></div><Link href="/reports" className="btn-primary no-underline">{rtl ? 'تقارير الطلاب' : 'Student reports'}</Link></div>
     {markDeadline && <MarkDeadlineCountdown deadline={markDeadline} rtl={rtl} />}

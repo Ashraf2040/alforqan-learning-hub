@@ -23,6 +23,9 @@ export function MarkDeadlineCountdown({ deadline, rtl }: Props) {
   const hours = Math.floor((remaining % 86_400_000) / 3_600_000);
   const minutes = Math.floor((remaining % 3_600_000) / 60_000);
   const seconds = Math.floor((remaining % 60_000) / 1000);
+  const locale = rtl ? 'ar-SA' : 'en-GB';
+  const deadlineDate = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(deadline));
+  const deadlineTime = new Intl.DateTimeFormat(locale, { timeStyle: 'short' }).format(new Date(deadline));
   const units = rtl
     ? [{ value: days, label: 'يوم' }, { value: hours, label: 'ساعة' }, { value: minutes, label: 'دقيقة' }, { value: seconds, label: 'ثانية' }]
     : [{ value: days, label: 'days' }, { value: hours, label: 'hours' }, { value: minutes, label: 'minutes' }, { value: seconds, label: 'seconds' }];
@@ -31,7 +34,7 @@ export function MarkDeadlineCountdown({ deadline, rtl }: Props) {
     <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-100 text-xl" aria-hidden>⏳</span>
     <div className="min-w-36 flex-1">
       <p className="text-sm font-black text-amber-950">{rtl ? 'الوقت المتبقي لإدخال الدرجات' : 'Time left to enter marks'}</p>
-      <p className="mt-0.5 text-xs font-medium text-amber-800">{rtl ? 'ينتهي الموعد في' : 'Deadline'}: {new Date(deadline).toLocaleString(rtl ? 'ar-SA' : undefined)}</p>
+      <p className="mt-0.5 text-xs font-medium leading-5 text-amber-800"><span className="block">{rtl ? 'التاريخ:' : 'Date:'} {deadlineDate}</span><span className="block" dir="ltr">{rtl ? 'الوقت:' : 'Time:'} {deadlineTime}</span></p>
     </div>
     <div className="flex gap-1.5 sm:gap-2" dir="ltr">
       {units.map(({ value, label }) => <div key={label} className="min-w-[48px] rounded-xl border border-amber-200/80 bg-white/85 px-2 py-1.5 text-center shadow-sm sm:min-w-[58px] sm:px-2.5">
