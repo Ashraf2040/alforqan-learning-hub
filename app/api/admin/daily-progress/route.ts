@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
       const grouped = new Map<string, { id: string; name: string; username: string; classes: Map<string, { classId: string; className: string; subjects: Map<string, { name: string; submitted: boolean }> }> }>();
       for (const schedule of schedules) for (const item of schedule.items) {
         const classTeachers = [...new Map([...schedule.class.teachers, ...schedule.class.classTeacherAssignments.map((assignment) => assignment.teacher)].map((teacher) => [teacher.id, teacher])).values()];
-        const candidates = item.teacher ? [item.teacher] : [...new Map([...item.subject.teachers, ...item.subject.teacherSubjectAssignments.map((a) => a.teacher)]
-          .filter((teacher) => classTeachers.length === 0 || classTeachers.some((assigned) => assigned.id === teacher.id))
-          .map((teacher) => [teacher.id, teacher])).values()];
+        const subjectTeachers = [...new Map([...item.subject.teachers, ...item.subject.teacherSubjectAssignments.map((assignment) => assignment.teacher)].map((teacher) => [teacher.id, teacher])).values()];
+        const candidates = subjectTeachers.filter((teacher) => classTeachers.some((assigned) => assigned.id === teacher.id));
+        if (!candidates.length && item.teacher) candidates.push(item.teacher);
         for (const teacher of candidates) {
           const key = `${teacher.id}:${schedule.class.id}`;
           const group = grouped.get(key) ?? { id: teacher.id, name: teacher.name, username: teacher.username, classes: new Map() };
@@ -49,6 +49,16 @@ export async function GET(request: NextRequest) {
           schoolClass.subjects.set(item.subjectId, { name: item.subject.name, submitted: schoolClass.subjects.get(item.subjectId)?.submitted || submitted });
           group.classes.set(schedule.class.id, schoolClass); grouped.set(key, group);
         }
+      }
+      // Include saved lesson rows even if there is no active schedule for this
+      // weekday or a schedule entry no longer points at the submitting teacher.
+      for (const lesson of lessons) {
+        const key = `${lesson.teacherId}:${lesson.classId}`;
+        const group = grouped.get(key) ?? { id: lesson.teacherId, name: lesson.teacher.name, username: lesson.teacher.username, classes: new Map() };
+        const schoolClass = group.classes.get(lesson.classId) ?? { classId: lesson.classId, className: lesson.class.name, subjects: new Map() };
+        schoolClass.subjects.set(lesson.subjectId, { name: lesson.subject.name, submitted: true });
+        group.classes.set(lesson.classId, schoolClass);
+        grouped.set(key, group);
       }
       const allTeachers = [...grouped.values()].map((teacher) => ({ ...teacher, classes: [...teacher.classes.values()].map((item) => ({ ...item, subjects: [...item.subjects.values()], expected: item.subjects.size, submitted: [...item.subjects.values()].filter((subject) => subject.submitted).length })) })).sort((a, b) => a.name.localeCompare(b.name));
       return NextResponse.json({ allTeachers, lessons });
@@ -84,10 +94,12 @@ export async function GET(request: NextRequest) {
   const scheduledIds = new Set(daySchedule?.items.map((item) => item.subjectId) ?? []);
   const assignedClassSubjects = classSubjectIds.size ? schoolClass.classSubjects.map((item) => item.subject) : gradeSubjects;
   const expectedSubjects = scheduledIds.size ? assignedClassSubjects.filter((subject) => scheduledIds.has(subject.id)) : assignedClassSubjects;
+  for (const lesson of lessons) assignments.set(lesson.teacher.id, assignments.get(lesson.teacher.id) ?? { id: lesson.teacher.id, name: lesson.teacher.name, username: lesson.teacher.username, subjects: [] });
   const teachers = [...assignments.values()].map((teacher) => {
     const baseSubjects = expectedSubjects.length ? expectedSubjects : teacher.subjects;
     const assignedIds = new Set(teacher.subjects.map((subject) => subject.id));
-    const subjects = baseSubjects.filter((subject) => assignedIds.has(subject.id));
+    const actualSubjects = lessons.filter((item) => item.teacherId === teacher.id).map((item) => item.subject);
+    const subjects = [...new Map([...baseSubjects.filter((subject) => assignedIds.has(subject.id)), ...actualSubjects].map((subject) => [subject.id, subject])).values()];
     const submittedSubjectIds = new Set(lessons.filter((item) => item.teacherId === teacher.id).map((item) => item.subjectId));
     return { ...teacher, expected: subjects.length, submitted: subjects.filter((subject) => submittedSubjectIds.has(subject.id)).length,
       missingSubjects: subjects.filter((subject) => !submittedSubjectIds.has(subject.id)).map((subject) => subject.name) };

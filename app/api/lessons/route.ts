@@ -35,6 +35,8 @@ export async function POST(request: NextRequest) {
     if (!classIds.length || !subjectId || !range || !String(unit ?? '').trim() || !String(pages ?? '').trim() || !String(lesson ?? '').trim() || !String(objective ?? '').trim()) {
       return NextResponse.json({ error: 'Complete the class, subject, date, unit, pages, lesson, and objective.' }, { status: 400 });
     }
+    const textFields = [unit, pages, lesson, objective, body.homework, body.comments];
+    if (textFields.some((value) => typeof value === 'string' && Array.from(value).length > 150)) return NextResponse.json({ error: 'Each lesson field must be 150 characters or fewer.' }, { status: 400 });
     const [classAssignments, subjectAssignment] = await Promise.all([
       prisma.class.findMany({ where: { id: { in: classIds }, OR: [{ teachers: { some: { id: session.user.id } } }, { classTeacherAssignments: { some: { teacherId: session.user.id } } }] }, select: { id: true } }),
       prisma.subject.findFirst({ where: { id: subjectId, OR: [{ teachers: { some: { id: session.user.id } } }, { teacherSubjectAssignments: { some: { teacherId: session.user.id } } }] }, select: { id: true } }),

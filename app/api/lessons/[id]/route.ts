@@ -17,6 +17,8 @@ export async function PATCH(request: NextRequest, { params }: Context) {
     const body = await request.json();
     const required = ['unit', 'pages', 'lesson', 'objective'] as const;
     if (required.some((key) => !String(body[key] ?? '').trim())) return NextResponse.json({ error: 'Complete the unit, pages, lesson, and objective.' }, { status: 400 });
+    const textFields = [body.unit, body.pages, body.lesson, body.objective, body.homework, body.comments];
+    if (textFields.some((value) => typeof value === 'string' && Array.from(value).length > 150)) return NextResponse.json({ error: 'Each lesson field must be 150 characters or fewer.' }, { status: 400 });
     const updated = await prisma.lesson.update({ where: { id: existing.id }, data: {
       unit: String(body.unit).trim(), pages: String(body.pages).trim(), lesson: String(body.lesson).trim(), objective: String(body.objective).trim(),
       homework: String(body.homework ?? '').trim() || null, comments: String(body.comments ?? '').trim() || null,
