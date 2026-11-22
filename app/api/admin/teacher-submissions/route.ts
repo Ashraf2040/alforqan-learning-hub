@@ -18,26 +18,37 @@ export async function GET(request: NextRequest) {
     const start = new Date(`${date}T00:00:00.000Z`);
     if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== date) return NextResponse.json({ error: 'Choose a valid date.' }, { status: 400 });
     const end = new Date(`${date}T23:59:59.999Z`);
-    const schedules = await prisma.schedule.findMany({ where: { isActive: true }, include: { class: { select: { id: true, name: true, teachers: { select: { id: true, name: true, username: true } }, classTeacherAssignments: { include: { teacher: { select: { id: true, name: true, username: true } } } } } }, items: { where: { dayIndex: start.getUTCDay() }, include: { subject: { include: { teachers: { select: { id: true, name: true, username: true } }, teacherSubjectAssignments: { include: { teacher: { select: { id: true, name: true, username: true } } } } } }, teacher: { select: { id: true, name: true, username: true } } } } } });
+    const teachers = await prisma.user.findMany({
+      where: { role: 'TEACHER' },
+      select: {
+        id: true, name: true, username: true,
+        classes: { select: { id: true, name: true, classSubjects: { select: { subjectId: true, subject: { select: { id: true, name: true } } } } } },
+        classTeacherAssignments: { select: { class: { select: { id: true, name: true, classSubjects: { select: { subjectId: true, subject: { select: { id: true, name: true } } } } } } } },
+        subjects: { select: { id: true, name: true } },
+        subjectTeacherAssignments: { select: { subject: { select: { id: true, name: true } } } },
+      },
+    });
     const lessons = await prisma.lesson.findMany({ where: { date: { gte: start, lte: end } }, select: {
       teacherId: true, classId: true, subjectId: true, createdAt: true,
       teacher: { select: { name: true, username: true } },
       class: { select: { name: true } }, subject: { select: { name: true } },
     } });
     const dailyMap = new Map<string, { id: string; teacherId: string; teacherName: string; username: string; classId: string; className: string; subjectId: string; subjectName: string; expectedStudents: number; dailyProgress: { submitted: boolean; lastEditedAt: Date | null } }>();
-    for (const schedule of schedules) for (const item of schedule.items) {
-      const classTeachers = [...new Map([...schedule.class.teachers, ...schedule.class.classTeacherAssignments.map(({ teacher }) => teacher)].map((teacher) => [teacher.id, teacher])).values()];
-      const subjectTeachers = [...new Map([...item.subject.teachers, ...item.subject.teacherSubjectAssignments.map(({ teacher }) => teacher)].map((teacher) => [teacher.id, teacher])).values()];
-      const candidates = item.teacher ? [item.teacher] : subjectTeachers.filter((teacher) => classTeachers.length === 0 || classTeachers.some((assigned) => assigned.id === teacher.id));
-      for (const teacher of candidates) {
-        const key = `${teacher.id}:${schedule.class.id}:${item.subjectId}`;
-        const lesson = lessons.filter((entry) => entry.teacherId === teacher.id && entry.classId === schedule.class.id && entry.subjectId === item.subjectId).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
-        dailyMap.set(key, { id: key, teacherId: teacher.id, teacherName: teacher.name, username: teacher.username, classId: schedule.class.id, className: schedule.class.name, subjectId: item.subjectId, subjectName: item.subject.name, expectedStudents: 0, dailyProgress: { submitted: Boolean(lesson), lastEditedAt: lesson?.createdAt ?? null } });
+    for (const teacher of teachers) {
+      const assignedClasses = [...new Map([...teacher.classes, ...teacher.classTeacherAssignments.map(({ class: item }) => item)].map((item) => [item.id, item])).values()];
+      const assignedSubjects = [...new Map([...teacher.subjects, ...teacher.subjectTeacherAssignments.map(({ subject }) => subject)].map((subject) => [subject.id, subject])).values()];
+      for (const schoolClass of assignedClasses) {
+        const classSubjects = [...new Map(schoolClass.classSubjects.map(({ subject }) => [subject.id, subject])).values()];
+        const eligibleSubjects = classSubjects.length ? assignedSubjects.filter((subject) => classSubjects.some((item) => item.id === subject.id)) : assignedSubjects;
+        for (const subject of eligibleSubjects) {
+          const key = `${teacher.id}:${schoolClass.id}:${subject.id}`;
+          const lesson = lessons.filter((entry) => entry.teacherId === teacher.id && entry.classId === schoolClass.id && entry.subjectId === subject.id).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+          dailyMap.set(key, { id: key, teacherId: teacher.id, teacherName: teacher.name, username: teacher.username, classId: schoolClass.id, className: schoolClass.name, subjectId: subject.id, subjectName: subject.name, expectedStudents: 0, dailyProgress: { submitted: Boolean(lesson), lastEditedAt: lesson?.createdAt ?? null } });
+        }
       }
     }
-    // A saved daily plan is still meaningful even when the class has no active
-    // schedule for that weekday, or the schedule's teacher assignment changed.
-    // Include every actual database lesson for the selected date in the report.
+    // Preserve saved lesson records if an assignment changed or was removed
+    // after the lesson was entered.
     for (const lesson of lessons) {
       const key = `${lesson.teacherId}:${lesson.classId}:${lesson.subjectId}`;
       if (!dailyMap.has(key)) dailyMap.set(key, {
