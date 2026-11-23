@@ -153,7 +153,7 @@ export default function StudentMarksManager({ mode, initialView = 'marks' }: Pro
     const scope = rtl
       ? `الفصل: ${className}\nالمادة: ${selectedSubject?.name ?? '—'}\nالفترة: ${academicYear} · ${semester}\nالعمود: ${column ? (rtl ? column.labelAr : column.label) : field}\nالخلايا التي ستتغير: ${changedCells}`
       : `Class: ${className}\nSubject: ${selectedSubject?.name ?? '—'}\nPeriod: ${academicYear} · ${semester}\nColumn: ${column?.label ?? field}\nCells to change: ${changedCells}`;
-    if (!window.confirm(`${rtl ? `هل تريد ${operation}؟` : `Are you sure you want to ${operation}?`}\n\n${scope}\n\n${rtl ? 'يمكنك التراجع قبل الحفظ.' : 'You can undo this before saving.'}`)) return;
+    if (!fill && !window.confirm(`${rtl ? `هل تريد ${operation}؟` : `Are you sure you want to ${operation}?`}\n\n${scope}\n\n${rtl ? 'يمكنك التراجع قبل الحفظ.' : 'You can undo this before saving.'}`)) return;
     setLastBulkUndo({ field, values: Object.fromEntries(students.map((student) => [student.id, marks[student.id]?.[field] ?? 0])) });
     const value = fill ? (maxima[field] ?? 0) : 0;
     setMarks((current) => Object.fromEntries(Object.entries(current).map(([studentId, values]) => [studentId, { ...values, [field]: value }])));

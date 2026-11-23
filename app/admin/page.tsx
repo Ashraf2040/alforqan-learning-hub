@@ -84,9 +84,9 @@ export default function CustomAdminHomePage() {
   const grid = 'grid gap-2.5 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3';
 
   return (
-    <main dir={rtl ? 'rtl' : 'ltr'} className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+    <main dir={rtl ? 'rtl' : 'ltr'} className="mx-auto min-h-[calc(100vh-64px)] w-full max-w-[1200px] bg-white px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
       {/* Welcome */}
-      <section className="flex flex-col gap-4 rounded-2xl bg-slate-900 px-5 py-5 text-white sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-6">
+      <section className="relative flex flex-col gap-4 rounded-2xl border border-slate-700/70 bg-slate-900 px-5 py-5 text-white shadow-xl shadow-slate-950/10 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-6">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
             {rtl ? `مرحبًا، ${session?.user?.name || 'بك'}` : `Welcome${session?.user?.name ? `, ${session.user.name}` : ''}`}

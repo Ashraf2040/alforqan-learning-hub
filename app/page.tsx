@@ -42,11 +42,11 @@ export default async function Home() {
     { href: '#roles', label: t('navTeachers') },
     { href: '#contact', label: t('navContact') },
   ];
-  return <main id="main-content" className="text-slate-900">
+  return <main id="main-content" className="landing-page text-slate-900">
     <a href="#main-content" className="sr-only z-50 rounded-lg bg-white px-4 py-3 text-slate-900 shadow focus:not-sr-only focus:fixed focus:start-4 focus:top-4">{t('skipToContent')}</a>
-    <section className="relative overflow-hidden border-b border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#ffffff_48%,#f1f5f9_100%)]">
+    <section className="premium-grid-surface relative overflow-hidden border-b border-slate-200">
       <div className="mx-auto grid w-full max-w-[1320px] items-center gap-12 px-5 py-16 sm:px-8 sm:py-20 lg:grid-cols-[1.04fr_.96fr] lg:gap-16 lg:px-12 lg:py-24 xl:py-28">
-        <div className="min-w-0">
+        <div className="landing-rise min-w-0">
           <p className="inline-flex min-h-9 items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3.5 text-xs font-semibold text-slate-700 shadow-sm sm:text-sm"><span className="h-2 w-2 rounded-full bg-emerald-600 ring-4 ring-emerald-100" />{t('eyebrow')}</p>
           <h1 className="mt-6 max-w-[17ch] text-[clamp(2.4rem,5vw,4.25rem)] font-extrabold leading-[1.04] tracking-[-.045em] text-slate-950">{t('title')}</h1>
           <p className="mt-6 max-w-[54ch] text-lg leading-8 text-slate-600 sm:text-xl sm:leading-9">{t('intro')}</p>
@@ -56,7 +56,7 @@ export default async function Home() {
           </div>
           <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 border-t border-slate-200 pt-5 text-sm text-slate-600">{[t('featurePlanTitle'), t('featureProgressTitle'), t('featureReportsTitle')].map((item) => <span key={item} className="inline-flex items-center gap-2"><Icon name="check" className="h-4 w-4 text-emerald-700" />{item}</span>)}</div>
         </div>
-        <div className="min-w-0 lg:ps-2" role="img" aria-label={t('dashboardCaption')}>
+        <div className="landing-rise landing-rise-delay min-w-0 lg:ps-2" role="img" aria-label={t('dashboardCaption')}>
           <div className="rounded-[1.75rem] border border-white bg-white p-5 shadow-[0_30px_80px_-42px_rgba(15,23,42,.42)] ring-1 ring-slate-200/80 sm:p-7">
             <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-4"><div><p className="text-sm font-medium text-slate-500">{t('dashboardLabel')}</p><h2 className="mt-1 text-xl font-bold tracking-tight text-slate-950 sm:text-2xl">{t('dashboardTitle')}</h2></div><span className="rounded-full bg-slate-100 px-3 py-1.5 text-xs font-semibold text-slate-800">{t('weekLabel')}</span></div>
             <article className="mt-5 flex items-center gap-3 rounded-2xl border border-slate-100 bg-slate-50/80 p-4"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80"><Icon name="plan" /></span><div className="min-w-0"><p className="text-xs font-medium text-slate-500">{t('featurePlanTitle')}</p><p className="mt-1 truncate text-sm font-semibold text-slate-900">{t('weekValue')}</p></div></article>
@@ -72,7 +72,7 @@ export default async function Home() {
       <div className="mx-auto w-full max-w-[1320px] px-5 py-16 sm:px-8 sm:py-20 lg:px-10 lg:py-28">
         <div className="max-w-2xl"><p className="text-sm font-semibold text-slate-800">{t('sectionEyebrow')}</p><h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">{t('sectionTitle')}</h2><p className="mt-4 text-base leading-7 text-slate-600">{t('sectionIntro')}</p></div>
         <div className="mt-10 overflow-hidden rounded-2xl border border-slate-200 bg-white sm:grid sm:grid-cols-2 lg:grid-cols-4">
-          {features.map((feature, index) => <article key={feature.key} className={['p-5 transition-colors duration-200 hover:bg-slate-50/80 sm:p-7', index > 0 ? 'border-t border-slate-200 sm:border-t-0' : '', index >= 2 ? 'sm:border-t sm:border-slate-200 lg:border-t-0' : '', index % 2 === 1 ? 'sm:border-s' : '', index > 0 ? 'lg:border-s' : ''].join(' ')}><span className="grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-900 shadow-sm ring-1 ring-slate-200/70"><Icon name={feature.key} className="h-6 w-6" /></span><h3 className="mt-5 text-xl font-semibold tracking-tight text-slate-950">{feature.title}</h3><p className="mt-2 text-[15px] leading-6 text-slate-600">{feature.text}</p></article>)}
+          {features.map((feature, index) => <article key={feature.key} className={['landing-feature p-5 transition-colors duration-200 hover:bg-slate-50/80 sm:p-7', index > 0 ? 'border-t border-slate-200 sm:border-t-0' : '', index >= 2 ? 'sm:border-t sm:border-slate-200 lg:border-t-0' : '', index % 2 === 1 ? 'sm:border-s' : '', index > 0 ? 'lg:border-s' : ''].join(' ')}><span className="landing-feature-icon grid h-12 w-12 place-items-center rounded-2xl bg-slate-100 text-slate-900 shadow-sm ring-1 ring-slate-200/70"><Icon name={feature.key} className="h-6 w-6" /></span><h3 className="mt-5 text-xl font-semibold tracking-tight text-slate-950">{feature.title}</h3><p className="mt-2 text-[15px] leading-6 text-slate-600">{feature.text}</p></article>)}
         </div>
       </div>
     </section>
